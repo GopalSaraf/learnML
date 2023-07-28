@@ -127,21 +127,19 @@ class UnivariateLinearRegression(IModel):
             db += db_i
         return dw / m, db / m
 
-    def _printIteration(self, i: int) -> None:
+    def _printIteration(self, iteration: int) -> None:
         """
-        Print the iteration number, cost, and parameters.
+        Print the current iteration and cost.
 
         Parameters
         ----------
-        i : int
-            The iteration number
-
-        Returns
-        -------
-        None
+        iteration : int
+            The current iteration
         """
-        n = len(str(self._num_iterations))
-        print(f"Iteration: {i:{n}n} | Cost: {self._J_history[-1]:0.6e}")
+        n = len(str(self._num_iterations)) + 1
+        cost = self._J_history[-1]
+
+        print(f"Iteration: {iteration:{n}n} | Cost: {cost:0.6e}")
 
     def fit(
         self, X: np.ndarray, Y: np.ndarray, w: np.float64 = 0.0, b: np.float64 = 0.0
@@ -186,7 +184,7 @@ class UnivariateLinearRegression(IModel):
             X = self._X_scalar.fit_transform(X)
 
         if self._Y_scalar is not None:
-            Y = self._Y_scalar.fit_transform(Y).reshape(-1)
+            Y = self._Y_scalar.fit_transform(Y)
 
         for i in range(self._num_iterations):
             dw, db = self._gradient(X, Y)
@@ -196,7 +194,7 @@ class UnivariateLinearRegression(IModel):
             self._J_history.append(self._cost(X, Y))
             self._p_history.append((self._weight, self._intercept))
 
-            if self._debug and i % (self._num_iterations // 10) == 0:
+            if self._debug and i % self._debug_freq == 0:
                 self._printIteration(i)
 
         if self._debug:

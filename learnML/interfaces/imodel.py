@@ -28,6 +28,8 @@ class IModel(ABC):
         self._J_history: list = None
         self._p_history: list = None
 
+        self._debug_freq = num_iterations // 10
+
     @abstractmethod
     def fit(
         self,
