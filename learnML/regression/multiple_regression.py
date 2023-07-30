@@ -12,6 +12,7 @@ class MultipleLinearRegression(IModel):
         self,
         learning_rate: np.float64 = 0.0001,
         num_iterations: int = 10000,
+        lambda_: np.float64 = 0,
         debug: bool = True,
         copy_X: bool = True,
         X_scalar: IFeatureScaling = None,
@@ -24,6 +25,8 @@ class MultipleLinearRegression(IModel):
             The learning rate, by default 0.0001
         num_iterations : int, optional
             The number of iterations, by default 10000
+        lambda_ : np.float64, optional
+            The regularization parameter, by default 0
         debug : bool, optional
             Whether to print debug messages, by default True
         copy_X : bool, optional
@@ -33,23 +36,29 @@ class MultipleLinearRegression(IModel):
         Y_scalar : IFeatureScaling, optional
             The feature scaling object for the output array, by default None
         """
-        super().__init__(
-            learning_rate, num_iterations, X_scalar, Y_scalar, debug, copy_X
-        )
+        self._learning_rate = learning_rate
+        self._num_iterations = num_iterations
+        self._lambda_ = lambda_
+        self._debug = debug
+        self._copy_X = copy_X
+        self._X_scalar = X_scalar
+        self._Y_scalar = Y_scalar
 
         self._weights: np.ndarray = None
         self._intercept: np.float64 = None
 
-    def _y_hat(self, x: np.ndarray, w: np.ndarray, b: np.float64) -> np.float64:
+        self._debug_freq = num_iterations // 10
+
+    def _y_hat(self, X: np.ndarray, W: np.ndarray, b: np.float64) -> np.float64:
         """
         Return the predicted value of y given x, w, and b.
 
         Parameters
         ----------
-        x : np.ndarray
-            The input array
-        w : np.ndarray
-            The weight array
+        X : np.ndarray
+            The input array of shape (n_features,)
+        W : np.ndarray
+            The weight array of shape (n_features,)
         b : np.float64
             The intercept
 
@@ -58,10 +67,10 @@ class MultipleLinearRegression(IModel):
         np.float64
             The predicted value of y
         """
-        return np.dot(x, w) + b
+        return np.dot(X, W) + b
 
     def _cost(
-        self, X: np.ndarray, Y: np.ndarray, w: np.ndarray, b: np.float64
+        self, X: np.ndarray, Y: np.ndarray, W: np.ndarray, b: np.float64
     ) -> np.float64:
         """
         Return the cost function given X, Y, w, and b.
@@ -69,11 +78,11 @@ class MultipleLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features)
         Y : np.ndarray
-            The output array
-        w : np.ndarray
-            The weight array
+            The output array of shape (n_samples,)
+        W : np.ndarray
+            The weight array of shape (n_features,)
         b : np.float64
             The intercept
 
@@ -89,15 +98,15 @@ class MultipleLinearRegression(IModel):
         cost = 0.0
 
         for i in range(m):
-            cost += (self._y_hat(X[i], w, b) - Y[i]) ** 2
+            cost += (self._y_hat(X[i], W, b) - Y[i]) ** 2
 
         return cost / (2 * m)
         """
         m = X.shape[0]
-        return np.sum((self._y_hat(X, w, b) - Y) ** 2) / (2 * m)
+        return np.sum((self._y_hat(X, W, b) - Y) ** 2) / (2 * m)
 
     def _gradient(
-        self, X: np.ndarray, Y: np.ndarray, w: np.ndarray, b: np.float64
+        self, X: np.ndarray, Y: np.ndarray, W: np.ndarray, b: np.float64
     ) -> Tuple[np.ndarray, np.float64]:
         """
         Return the gradient of the cost function given X, Y, w, and b.
@@ -105,11 +114,11 @@ class MultipleLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features)
         Y : np.ndarray
-            The output array
-        w : np.ndarray
-            The weight array
+            The output array of shape (n_samples,)
+        W : np.ndarray
+            The weight array of shape (n_features,)
         b : np.float64
             The intercept
 
@@ -128,31 +137,54 @@ class MultipleLinearRegression(IModel):
         db = 0.0
 
         for i in range(m):
-            dw += (self._y_hat(X[i], w, b) - Y[i]) * X[i]
-            db += self._y_hat(X[i], w, b) - Y[i]
+            dw += (self._y_hat(X[i], W, b) - Y[i]) * X[i]
+            db += self._y_hat(X[i], W, b) - Y[i]
 
         return dw / m, db / m
         """
 
         m = X.shape[0]
-        dw = np.dot(X.T, self._y_hat(X, w, b) - Y) / m
-        db = np.sum(self._y_hat(X, w, b) - Y) / m
+        dw = np.dot(X.T, self._y_hat(X, W, b) - Y) / m
+        db = np.sum(self._y_hat(X, W, b) - Y) / m
         return dw, db
 
-    def _printIteration(self, iteration: int) -> None:
+    def _getXandY(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Print the current iteration and cost.
+        Return the input and output arrays.
 
         Parameters
         ----------
-        iteration : int
-            The current iteration
+        X : np.ndarray
+            The input array of shape (n_samples, n_features)
+        Y : np.ndarray
+            The output array of shape (n_samples,) or (n_samples, 1)
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            The input and output arrays
         """
-        n = len(str(self._num_iterations)) + 1
-        print(f"Iteration: {iteration:{n}n} | Cost: {self._J_history[-1]:0.6e}")
+        if len(X.shape) == 1:
+            X = X.reshape(-1, 1)
+
+        if len(Y.shape) == 1:
+            Y = Y.reshape(-1, 1)
+
+        if self._copy_X:
+            X = np.copy(X)
+
+        if self._X_scalar is not None:
+            X = self._X_scalar.fit_transform(X)
+
+        if self._Y_scalar is not None:
+            Y = self._Y_scalar.fit_transform(Y).reshape(-1)
+        else:
+            Y = Y.reshape(-1)
+
+        return X, Y
 
     def fit(
-        self, X: np.ndarray, Y: np.ndarray, w: np.ndarray = None, b: np.float64 = 0
+        self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = 0
     ) -> None:
         """
         Train the model given X and Y.
@@ -160,53 +192,32 @@ class MultipleLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features) or (n_samples,)
         Y : np.ndarray
-            The output array
+            The output array of shape (n_samples,) or (n_samples, 1)
         w : np.ndarray, optional
             The weight array, by default None
         b : np.float64, optional
             The intercept, by default 0
 
-        Raises
-        ------
-        ValueError
-            If the number of rows in X and Y are not equal
-
-        Notes
-        -----
-        If w is None, then it will be initialized to an array of zeros.
-
-        If copy_X is True, then X will be copied before training.
-
-        The cost function and parameters will be saved in J_history and p_history, respectively.
-
-        If debug is True, then the cost function will be printed every 10% of the iterations.
-
-        The cost function is computed using the mean squared error.
-
-        The gradient is computed using the mean squared error.
+        Returns
+        -------
+        None
         """
+        assert X.shape[0] == Y.shape[0], "X and Y must have the same number of samples"
 
-        n = X.shape[1] if len(X.shape) == 2 else 1
+        X, Y = self._getXandY(X, Y)
 
-        if self._copy_X:
-            X = copy.deepcopy(X)
-
-        self._weights = np.zeros(n) if w is None else w
+        self._weights = np.zeros(X.shape[1]) if W is None else W
         self._intercept = b
-
-        if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
-
-        if self._Y_scalar is not None:
-            Y = self._Y_scalar.fit_transform(Y).reshape(-1)
 
         self._J_history = [self._cost(X, Y, self._weights, self._intercept)]
         self._p_history = []
 
         for i in range(self._num_iterations):
             dw, db = self._gradient(X, Y, self._weights, self._intercept)
+
+            self._weights = self._weights.astype("float64")
             self._weights -= self._learning_rate * dw
             self._intercept -= self._learning_rate * db
 
@@ -226,23 +237,28 @@ class MultipleLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features) or (n_samples,)
 
         Returns
         -------
         np.ndarray
-            The predicted values
+            The predicted values of shape (n_samples,)
         """
+        assert self._weights is not None and self._intercept is not None, (
+            "The model must be trained before making predictions. "
+            "Call the fit method first."
+        )
 
-        if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
+        X, _ = self._getXandY(X, np.zeros(X.shape[0]))
 
-        predicton = self._y_hat(X, self._weights, self._intercept)
+        predictions = [
+            self._y_hat(X[i], self._weights, self._intercept) for i in range(X.shape[0])
+        ]
 
         if self._Y_scalar is not None:
-            predicton = self._Y_scalar.inverse_transform(predicton)
+            predictions = self._Y_scalar.inverse_transform(predictions)
 
-        return predicton
+        return np.array(predictions)
 
     def get_cost_history(self) -> np.ndarray:
         """
@@ -288,7 +304,7 @@ class MultipleLinearRegression(IModel):
         """
         return self._intercept
 
-    def cost(
+    def score(
         self, X: np.ndarray, Y: np.ndarray, w: np.ndarray = None, b: np.float64 = None
     ) -> np.float64:
         """
@@ -297,9 +313,9 @@ class MultipleLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features) or (n_samples,)
         Y : np.ndarray
-            The output array
+            The output array of shape (n_samples,) or (n_samples, 1)
         w : np.ndarray, optional
             The weight array, by default None
         b : np.float64, optional
@@ -311,11 +327,7 @@ class MultipleLinearRegression(IModel):
             The computed cost
         """
 
-        if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
-
-        if self._Y_scalar is not None:
-            Y = self._Y_scalar.fit_transform(Y)
+        X, Y = self._getXandY(X, Y)
 
         if w is None:
             w = self._weights
@@ -324,3 +336,16 @@ class MultipleLinearRegression(IModel):
             b = self._intercept
 
         return self._cost(X, Y, w, b)
+
+    def _printIteration(self, iteration: int) -> None:
+        """
+        Print the current iteration and cost.
+
+        Parameters
+        ----------
+        iteration : int
+            The current iteration
+        """
+        n = len(str(self._num_iterations)) + 1
+        cost = self._J_history[-1]
+        print(f"Iteration: {iteration:{n}n} | Cost: {cost:0.6e}")

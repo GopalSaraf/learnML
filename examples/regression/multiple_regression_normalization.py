@@ -1,10 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Add the path of learnML to sys.path
-import sys
-
-sys.path.append("../learnML")
 
 from learnML.preprocessing import ZScoreNormalization
 from learnML.regression import MultipleLinearRegression
@@ -31,15 +27,8 @@ y_pred = model.predict(X_test)
 
 print(f"Prediction for {X_test} : {y_pred[0]}")
 
-
-def plot():
-    plt.plot(model.get_cost_history())
-    plt.title("Cost vs. iteration")
-    plt.ylabel("Cost")
-    plt.xlabel("iteration step")
-    plt.show()
-
-
-want_plot = input("Do you want to plot the cost function? (y/n) ")
-if want_plot.lower() == "y":
-    plot()
+plt.plot(model.get_cost_history())
+plt.title("Cost vs. iteration")
+plt.ylabel("Cost")
+plt.xlabel("iteration step")
+plt.show()

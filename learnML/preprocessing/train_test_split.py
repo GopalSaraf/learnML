@@ -161,9 +161,9 @@ class TrainTestSplit:
         Parameters
         ----------
         X : np.ndarray
-            The input features
+            The input features of shape (n_samples, n_features)
         Y : np.ndarray
-            The output features
+            The output features of shape (n_samples, n_outputs)
         test_size : float, optional
             The size of the testing set, by default 0.2
         random_state : int, optional
@@ -175,14 +175,27 @@ class TrainTestSplit:
             The training and testing sets
             X_train, X_test, Y_train, Y_test
         """
-        m, n = X.shape
-        Y = Y.reshape(m, 1)
+        assert test_size > 0 and test_size < 1, "test_size must be between 0 and 1"
+        assert X.shape[0] == Y.shape[0], "X and Y must have the same number of samples"
+        assert X.shape[0] > 0, "X must have at least one sample"
+        assert Y.shape[0] > 0, "Y must have at least one sample"
 
-        # Shuffle the data
-        X = X[np.random.permutation(m), :]
-        Y = Y[np.random.permutation(m), :]
-        X = X.reshape(m, n)
-        Y = Y.reshape(m, 1)
+        np.random.seed(random_state)
+
+        if len(X.shape) == 1:
+            X = X.reshape(X.shape[0], 1)
+
+        if len(Y.shape) == 1:
+            Y = Y.reshape(Y.shape[0], 1)
+
+        m = X.shape[0]
+
+        # Shuffle the indices of the data points
+        indices = np.random.permutation(m)
+
+        # Use the shuffled indices to rearrange X and Y
+        X = X[indices, :]
+        Y = Y[indices, :]
 
         # No of samples in the testing set
         testSize = int(m * test_size)

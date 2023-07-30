@@ -1,42 +1,15 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from typing import Union
-
-from .ifeature_scaling import IFeatureScaling
 
 
 class IModel(ABC):
     """Interface for model classes."""
 
     @abstractmethod
-    def __init__(
-        self,
-        learning_rate: np.float64,
-        num_iterations: int,
-        X_scalar: IFeatureScaling,
-        Y_scalar: IFeatureScaling,
-        debug: bool,
-        copy_X: bool,
-    ) -> None:
-        self._learning_rate = learning_rate
-        self._num_iterations = num_iterations
-        self._X_scalar = X_scalar
-        self._Y_scalar = Y_scalar
-        self._debug = debug
-        self._copy_X = copy_X
-
-        self._J_history: list = None
-        self._p_history: list = None
-
-        self._debug_freq = num_iterations // 10
-
-    @abstractmethod
     def fit(
         self,
         X: np.ndarray,
         Y: np.ndarray,
-        w: Union[np.ndarray, np.float64],
-        b: np.float64,
     ) -> None:
         """
         Fit the model to the data.
@@ -44,13 +17,11 @@ class IModel(ABC):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The array like object containing the input
+            data of shape (n_samples, n_features)
         Y : np.ndarray
-            The output array
-        w : Union[np.ndarray, np.float64]
-            The weight array
-        b : np.float64
-            The intercept
+            The array like object containing the output
+            data of shape (n_samples, n_targets) or (n_samples,)
 
         Returns
         -------
@@ -66,11 +37,38 @@ class IModel(ABC):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The array like object containing the input
+            data of shape (n_samples, n_features)
 
         Returns
         -------
         np.ndarray
-            The predicted output array
+            The array like object containing the output
+            data of shape (n_samples, n_targets) or (n_samples,)
+        """
+        pass
+
+    @abstractmethod
+    def score(
+        self,
+        X: np.ndarray,
+        Y: np.ndarray,
+    ) -> float:
+        """
+        Calculate the score of the model.
+
+        Parameters
+        ----------
+        X : np.ndarray
+            The array like object containing the input
+            data of shape (n_samples, n_features)
+        Y : np.ndarray
+            The array like object containing the output
+            data of shape (n_samples, n_targets) or (n_samples,)
+
+        Returns
+        -------
+        float
+            The score of the model
         """
         pass
