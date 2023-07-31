@@ -47,3 +47,10 @@ print("Accuracy:", np.sum(y_pred == y_test) / len(y_test))
 print()
 print("Confusion matrix:")
 print(pd.crosstab(y_test, y_pred, rownames=["Actual"], colnames=["Predicted"]))
+
+
+plt.plot(model.get_cost_history())
+plt.xlabel("Iteration")
+plt.ylabel("Cost")
+plt.title("Cost per iteration")
+plt.show()
