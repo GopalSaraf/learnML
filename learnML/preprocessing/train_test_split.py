@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from typing import Tuple
 
 
 class TrainTestSplit:
@@ -154,7 +155,7 @@ class TrainTestSplit:
     @staticmethod
     def train_test_split(
         X: np.ndarray, Y: np.ndarray, test_size: float = 0.2, random_state: int = 0
-    ) -> tuple:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Split the data into training and testing sets.
 

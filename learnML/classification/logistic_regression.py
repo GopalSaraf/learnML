@@ -2,7 +2,7 @@ from typing import Tuple, Union
 import numpy as np
 import copy
 
-from ..interfaces import IModel, IFeatureScaling
+from ..interfaces import IModel, IFeatureEngineering
 
 
 class LogisticRegression(IModel):
@@ -14,7 +14,7 @@ class LogisticRegression(IModel):
         num_iterations: int = 10000,
         debug: bool = True,
         copy_X: bool = True,
-        X_scalar: IFeatureScaling = None,
+        X_scalar: IFeatureEngineering = None,
     ) -> None:
         """
         Parameters
@@ -27,15 +27,22 @@ class LogisticRegression(IModel):
             Whether to print debug messages, by default True
         copy_X : bool, optional
             Whether to copy the input array, by default True
-        X_scalar : IFeatureScaling, optional
+        X_scalar : IFeatureEngineering, optional
             The feature scaling object for the input array, by default None
-        Y_scalar : IFeatureScaling, optional
-            The feature scaling object for the output array, by default None
         """
-        super().__init__(learning_rate, num_iterations, X_scalar, None, debug, copy_X)
+        self._learning_rate = learning_rate
+        self._num_iterations = num_iterations
+        self._debug = debug
+        self._copy_X = copy_X
+        self._X_scalar = X_scalar
 
-        self._weights: np.ndarray
-        self._intercept: np.float64
+        self._weights: np.ndarray = None
+        self._intercept: np.float64 = None
+
+        self._cost_history: np.ndarray = None
+        self._params_history: np.ndarray = None
+
+        self._debug_freq = num_iterations // 10
 
     def _sigmoid(self, z: np.float64) -> np.float64:
         """
@@ -51,45 +58,50 @@ class LogisticRegression(IModel):
         np.float64
             The sigmoid of z
         """
+        # 1 / (1 + e^(-z))
         return 1 / (1 + np.exp(-z))
 
-    def _y_hat(self, x: np.ndarray, w: np.ndarray, b: np.float64) -> np.float64:
+    def _y_hat(
+        self, X: np.ndarray, W: np.ndarray, b: np.float64
+    ) -> Union[np.float64, np.ndarray]:
         """
-        Return the predicted value of y given x, w, and b.
+        Return the predicted value of y given X, W, and b.
 
         Parameters
         ----------
-        x : np.ndarray
-            The input array
-        w : np.ndarray
-            The weight array
+        X : np.ndarray
+            The input array of shape (n_features,) or (n_samples, n_features)
+        W : np.ndarray
+            The weight array of shape (n_features,)
         b : np.float64
-            The intercept
+            The intercept value
 
         Returns
         -------
         np.float64
             The predicted value of y
+            If X is a 1D array, return a scalar
+            If X is a 2D array, return an array of shape (n_samples,)
         """
-        z = np.dot(x, w) + b
+        z = np.dot(X, W) + b
         return self._sigmoid(z)
 
     def _cost(
-        self, x: np.ndarray, y: np.float64, w: np.ndarray, b: np.float64
+        self, X: np.ndarray, y: np.float64, W: np.ndarray, b: np.float64
     ) -> np.float64:
         """
-        Return the cost of the model given x, y, w, and b.
+        Return the cost of the model given X, y, W, and b.
 
         Parameters
         ----------
-        x : np.ndarray
-            The input array
+        X : np.ndarray
+            The input array of shape (n_samples, n_features)
         y : np.float64
-            The output
-        w : np.ndarray
-            The weight array
+            The output array of shape (n_samples,)
+        W : np.ndarray
+            The weight array of shape (n_features,)
         b : np.float64
-            The intercept
+            The intercept value
 
         Returns
         -------
@@ -110,32 +122,35 @@ class LogisticRegression(IModel):
 
         return -cost / m
         """
-        y_hat = self._y_hat(x, w, b)
+        y_hat = self._y_hat(X, W, b)
+
+        # Cost of logistic regression : -[ylog(y_hat) + (1-y)log(1-y_hat)] / m
         pos_cost = np.dot(y, np.log(y_hat))
         neg_cost = np.dot(1 - y, np.log(1 - y_hat))
-        return -(pos_cost + neg_cost) / x.shape[0]
+
+        return -np.sum(pos_cost + neg_cost) / X.shape[0]
 
     def _gradient(
-        self, x: np.ndarray, y: np.float64, w: np.ndarray, b: np.float64
+        self, X: np.ndarray, Y: np.float64, W: np.ndarray, b: np.float64
     ) -> Union[np.ndarray, np.float64]:
         """
-        Return the gradient of the model given x, y, w, and b.
+        Return the gradient of the model given X, y, W, and b.
 
         Parameters
         ----------
         x : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features)
         y : np.float64
-            The output
+            The output array of shape (n_samples,)
         w : np.ndarray
-            The weight array
+            The weight array of shape (n_features,)
         b : np.float64
-            The intercept
+            The intercept value
 
         Returns
         -------
         Union[np.ndarray, np.float64]
-            The gradient of the model
+            The gradient of the model with respect to w and b
         """
         """
         ALTERNATIVE IMPLEMENTATION
@@ -151,25 +166,58 @@ class LogisticRegression(IModel):
 
         return dw / m, db / m
         """
-        y_hat = self._y_hat(x, w, b)
-        dw = np.dot(x.T, y_hat - y)
-        db = np.sum(y_hat - y)
-        return dw / x.shape[0], db / x.shape[0]
+        y_hat = self._y_hat(X, W, b)
 
-    def _printIteration(self, iteration: int) -> None:
+        # Gradient of logistic regression
+
+        # dJ/dW = (1/m) * sum((y_hat - y) * x)
+        # We use X.T to get the transpose of X so that we can multiply it with (y_hat - y)
+        # transpose of X has shape (n_features, n_samples)
+        # (y_hat - y) has shape (n_samples,)
+        # The result of the multiplication has shape (n_features,)
+        dJ_dW = np.dot(X.T, y_hat - Y) / X.shape[0]
+
+        # dJ/db = (1/m) * sum(y_hat - y)
+        # (y_hat - y) has shape (n_samples,)
+        # The result of the multiplication has shape (1,)
+        dJ_db = np.sum(y_hat - Y) / X.shape[0]
+
+        return dJ_dW, dJ_db
+
+    def _getXAndY(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Print the current iteration and cost.
+        Return the input and output arrays of the model.
 
         Parameters
         ----------
-        iteration : int
-            The current iteration
+        X : np.ndarray
+            The input array of shape (n_samples, n_features)
+        Y : np.ndarray
+            The output array of shape (n_samples,)
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            The input and output arrays of the model
+            X has shape (n_samples, n_features)
+            Y has shape (n_samples,)
         """
-        n = len(str(self._num_iterations)) + 1
-        print(f"Iteration: {iteration:{n}n} | Cost: {self._J_history[-1]:0.6e}")
+        if self._copy_X:
+            X = copy.deepcopy(X)
+
+        if len(X.shape) == 1:
+            X = X.reshape(-1, 1)
+
+        if len(Y.shape) == 2:
+            Y = Y.reshape(-1)
+
+        if self._X_scalar is not None:
+            X = self._X_scalar.fit_transform(X)
+
+        return X, Y
 
     def fit(
-        self, X: np.ndarray, Y: np.ndarray, w: np.float64 = 0.0, b: np.float64 = 0.0
+        self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = 0.0
     ) -> None:
         """
         Fit the model to the data.
@@ -177,58 +225,47 @@ class LogisticRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features)
         Y : np.ndarray
-            The output array
-        w : np.float64, optional
-            The initial weight, by default 0.0
+            The output array of shape (n_samples,)
+        W : np.ndarray, optional
+            The weight array of shape (n_features,), by default None
         b : np.float64, optional
-            The initial intercept, by default 0.0
+            The intercept value, by default 0.0
+
+        Returns
+        -------
+        None
         """
-        n = X.shape[1]
-        self._weights = np.full((n, 1), w)
+        assert X.shape[0] == Y.shape[0], "X and Y must have the same number of samples"
+
+        X, Y = self._getXAndY(X, Y)
+
+        # Initialize weights and intercept
+        self._weights = np.zeros(X.shape[1]) if W is None else W
         self._intercept = b
 
-        if self._copy_X:
-            X = copy.deepcopy(X)
+        self._cost_history = [self._cost(X, Y, self._weights, self._intercept)]
+        self._params_history = []
 
-        if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
-
+        # Iterate and update weights and intercept
         for i in range(self._num_iterations):
+            # Calculate gradient
             dw, db = self._gradient(X, Y, self._weights, self._intercept)
+
+            # Update weights and intercept
             self._weights -= self._learning_rate * dw
             self._intercept -= self._learning_rate * db
-            self._J_history.append(self._cost(X, Y, self._weights, self._intercept))
-            self._p_history.append((self._weights, self._intercept))
+
+            # Save cost and params history
+            self._cost_history.append(self._cost(X, Y, self._weights, self._intercept))
+            self._params_history.append((self._weights, self._intercept))
 
             if self._debug and i % self._debug_freq == 0:
                 self._printIteration(i)
 
         if self._debug:
             self._printIteration(self._num_iterations)
-
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Predict the output given the input.
-
-        Parameters
-        ----------
-        X : np.ndarray
-            The input array
-
-        Returns
-        -------
-        np.ndarray
-            The predicted output array
-        """
-        if self._copy_X:
-            X = copy.deepcopy(X)
-
-        if self._X_scalar is not None:
-            X = self._X_scalar.transform(X)
-
-        return np.where(self._y_hat(X, self._weights, self._intercept) >= 0.5, 1, 0)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -237,20 +274,38 @@ class LogisticRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features) or (n_features,)
 
         Returns
         -------
         np.ndarray
-            The predicted output array
+            The predicted output array of shape (n_samples,) or (1,)
         """
-        if self._copy_X:
-            X = copy.deepcopy(X)
-
-        if self._X_scalar is not None:
-            X = self._X_scalar.transform(X)
-
+        assert self._weights is not None and self._intercept is not None, (
+            "The model must be trained before making predictions. "
+            "Call the fit method first."
+        )
+        X, _ = self._getXAndY(X, np.zeros(X.shape[0]))
+        # Return the probability of the output being 1
         return self._y_hat(X, self._weights, self._intercept)
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """
+        Predict the output given the input.
+
+        Parameters
+        ----------
+        X : np.ndarray
+            The input array of shape (n_samples, n_features) or (n_features,)
+
+        Returns
+        -------
+        np.ndarray
+            The predicted output array of shape (n_samples,) or (1,)
+        """
+        # Return 1 if the probability of the output being 1 is greater than or equal to 0.5
+        # Return 0 otherwise
+        return np.where(self.predict_proba(X) >= 0.5, 1, 0)
 
     def get_cost_history(self) -> np.ndarray:
         """
@@ -259,9 +314,9 @@ class LogisticRegression(IModel):
         Returns
         -------
         np.ndarray
-            The cost history
+            The cost history array
         """
-        return np.array(self._J_history)
+        return np.array(self._cost_history)
 
     def get_parameter_history(self) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -272,7 +327,7 @@ class LogisticRegression(IModel):
         Tuple[np.ndarray, np.ndarray]
             The parameter history
         """
-        return np.array(self._p_history)
+        return np.array(self._params_history)
 
     def get_weights(self) -> np.ndarray:
         """
@@ -296,20 +351,20 @@ class LogisticRegression(IModel):
         """
         return self._intercept
 
-    def cost(
-        self, X: np.ndarray, Y: np.ndarray, w: np.ndarray = None, b: np.float64 = None
+    def score(
+        self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = None
     ) -> np.float64:
         """
-        Return the cost of the model given x, y, w, and b.
+        Return the cost of the model given X, Y, W, and b.
 
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples, n_features)
         Y : np.ndarray
-            The output array
-        w : np.ndarray, optional
-            The weight array, by default None
+            The output array of shape (n_samples,)
+        W : np.ndarray, optional
+            The weight array of shape (n_features,), by default None
         b : np.float64, optional
             The intercept, by default None
 
@@ -318,12 +373,22 @@ class LogisticRegression(IModel):
         np.float64
             The cost of the model
         """
-        if w is None:
-            w = self._weights
-        if b is None:
-            b = self._intercept
+        X, Y = self._getXAndY(X, Y)
 
-        if self._X_scalar is not None:
-            X = self._X_scalar.transform(X)
+        W = self._weights if W is None else W
+        b = self._intercept if b is None else b
 
-        return self._cost(X, Y, w, b)
+        return self._cost(X, Y, W, b)
+
+    def _printIteration(self, iteration: int) -> None:
+        """
+        Print the current iteration and cost.
+
+        Parameters
+        ----------
+        iteration : int
+            The current iteration
+        """
+        n = len(str(self._num_iterations)) + 1
+        cost = self._cost_history[-1]
+        print(f"Iteration: {iteration:{n}n} | Cost: {cost:0.6e}")

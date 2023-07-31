@@ -2,7 +2,7 @@ from typing import Tuple, Union
 import numpy as np
 import copy
 
-from ..interfaces import IModel, IFeatureScaling
+from ..interfaces import IModel, IFeatureEngineering
 
 
 class UnivariateLinearRegression(IModel):
@@ -14,8 +14,8 @@ class UnivariateLinearRegression(IModel):
         num_iterations: int = 10000,
         debug: bool = True,
         copy_X: bool = True,
-        X_scalar: IFeatureScaling = None,
-        Y_scalar: IFeatureScaling = None,
+        X_scalar: IFeatureEngineering = None,
+        Y_scalar: IFeatureEngineering = None,
     ) -> None:
         """
         Parameters
@@ -30,9 +30,9 @@ class UnivariateLinearRegression(IModel):
             Whether to print debug information, by default True
         copy_X : bool, optional
             Whether to copy the input data, by default True
-        X_scalar : IFeatureScaling, optional
+        X_scalar : IFeatureEngineering, optional
             The feature scaling object for the input data, by default None
-        Y_scalar : IFeatureScaling, optional
+        Y_scalar : IFeatureEngineering, optional
             The feature scaling object for the output data, by default None
         """
         self._learning_rate = learning_rate
@@ -156,10 +156,10 @@ class UnivariateLinearRegression(IModel):
             X = copy.deepcopy(X)
 
         if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
+            X = self._X_scalar.transform(X)
 
         if self._Y_scalar is not None:
-            Y = self._Y_scalar.fit_transform(Y)
+            Y = self._Y_scalar.transform(Y)
 
         return X, Y
 
@@ -245,7 +245,7 @@ class UnivariateLinearRegression(IModel):
             X = np.array([X])
 
         if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
+            X = self._X_scalar.transform(X)
 
         predictions = [self._y_hat(x, self._weight, self._intercept) for x in X]
 

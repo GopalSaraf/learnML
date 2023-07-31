@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import copy
 
-from ..interfaces import IModel, IFeatureScaling
+from ..interfaces import IModel, IFeatureEngineering
 
 
 class MultipleLinearRegression(IModel):
@@ -15,8 +15,8 @@ class MultipleLinearRegression(IModel):
         lambda_: np.float64 = 0,
         debug: bool = True,
         copy_X: bool = True,
-        X_scalar: IFeatureScaling = None,
-        Y_scalar: IFeatureScaling = None,
+        X_scalar: IFeatureEngineering = None,
+        Y_scalar: IFeatureEngineering = None,
     ) -> None:
         """
         Parameters
@@ -31,9 +31,9 @@ class MultipleLinearRegression(IModel):
             Whether to print debug messages, by default True
         copy_X : bool, optional
             Whether to copy the input array, by default True
-        X_scalar : IFeatureScaling, optional
+        X_scalar : IFeatureEngineering, optional
             The feature scaling object for the input array, by default None
-        Y_scalar : IFeatureScaling, optional
+        Y_scalar : IFeatureEngineering, optional
             The feature scaling object for the output array, by default None
         """
         self._learning_rate = learning_rate
@@ -46,6 +46,9 @@ class MultipleLinearRegression(IModel):
 
         self._weights: np.ndarray = None
         self._intercept: np.float64 = None
+
+        self._cost_history: np.ndarray = None
+        self._params_history: np.ndarray = None
 
         self._debug_freq = num_iterations // 10
 
@@ -164,20 +167,20 @@ class MultipleLinearRegression(IModel):
         Tuple[np.ndarray, np.ndarray]
             The input and output arrays
         """
+        if self._copy_X:
+            X = np.copy(X)
+
         if len(X.shape) == 1:
             X = X.reshape(-1, 1)
 
         if len(Y.shape) == 1:
             Y = Y.reshape(-1, 1)
 
-        if self._copy_X:
-            X = np.copy(X)
-
         if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
+            X = self._X_scalar.transform(X)
 
         if self._Y_scalar is not None:
-            Y = self._Y_scalar.fit_transform(Y).reshape(-1)
+            Y = self._Y_scalar.transform(Y).reshape(-1)
         else:
             Y = Y.reshape(-1)
 
@@ -211,8 +214,8 @@ class MultipleLinearRegression(IModel):
         self._weights = np.zeros(X.shape[1]) if W is None else W
         self._intercept = b
 
-        self._J_history = [self._cost(X, Y, self._weights, self._intercept)]
-        self._p_history = []
+        self._cost_history = [self._cost(X, Y, self._weights, self._intercept)]
+        self._params_history = []
 
         for i in range(self._num_iterations):
             dw, db = self._gradient(X, Y, self._weights, self._intercept)
@@ -221,8 +224,8 @@ class MultipleLinearRegression(IModel):
             self._weights -= self._learning_rate * dw
             self._intercept -= self._learning_rate * db
 
-            self._J_history.append(self._cost(X, Y, self._weights, self._intercept))
-            self._p_history.append((self._weights, self._intercept))
+            self._cost_history.append(self._cost(X, Y, self._weights, self._intercept))
+            self._params_history.append((self._weights, self._intercept))
 
             if self._debug and i % self._debug_freq == 0:
                 self._printIteration(i)
@@ -269,7 +272,7 @@ class MultipleLinearRegression(IModel):
         np.ndarray
             The history of the cost function
         """
-        return np.array(self._J_history)
+        return np.array(self._cost_history)
 
     def get_parameter_history(self) -> Tuple[np.ndarray, np.float64]:
         """
@@ -280,7 +283,7 @@ class MultipleLinearRegression(IModel):
         Tuple[np.ndarray, np.float64]
             The history of the parameters
         """
-        return np.array(self._p_history)
+        return np.array(self._params_history)
 
     def get_weights(self) -> np.ndarray:
         """
@@ -347,5 +350,5 @@ class MultipleLinearRegression(IModel):
             The current iteration
         """
         n = len(str(self._num_iterations)) + 1
-        cost = self._J_history[-1]
+        cost = self._cost_history[-1]
         print(f"Iteration: {iteration:{n}n} | Cost: {cost:0.6e}")
