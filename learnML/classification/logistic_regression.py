@@ -1,6 +1,5 @@
 from typing import Tuple, Union
 import numpy as np
-import copy
 
 from ..interfaces import IModel, IFeatureEngineering
 
@@ -203,7 +202,7 @@ class LogisticRegression(IModel):
             Y has shape (n_samples,)
         """
         if self._copy_X:
-            X = copy.deepcopy(X)
+            X = np.copy(X)
 
         if len(X.shape) == 1:
             X = X.reshape(-1, 1)
@@ -285,6 +284,7 @@ class LogisticRegression(IModel):
             "The model must be trained before making predictions. "
             "Call the fit method first."
         )
+
         X, _ = self._getXAndY(X, np.zeros(X.shape[0]))
         # Return the probability of the output being 1
         return self._y_hat(X, self._weights, self._intercept)

@@ -1,6 +1,5 @@
 from typing import Tuple, Union
 import numpy as np
-import copy
 
 from ..interfaces import IModel, IFeatureEngineering
 
@@ -153,7 +152,7 @@ class UnivariateLinearRegression(IModel):
             Y = Y.reshape(-1)
 
         if self._copy_X:
-            X = copy.deepcopy(X)
+            X = np.copy(X)
 
         if self._X_scalar is not None:
             X = self._X_scalar.transform(X)

@@ -1,16 +1,17 @@
-from typing import Tuple
 import numpy as np
+from typing import Tuple, Union
 
 from ..interfaces import IModel, IFeatureEngineering
 
 
-class MultipleLinearRegression(IModel):
-    """Multiple Feature Linear Regression Model"""
+class PolynomialLinearRegression(IModel):
+    """Polynomial Linear Regression Model"""
 
     def __init__(
         self,
         learning_rate: np.float64 = 0.0001,
         num_iterations: int = 10000,
+        degree: Union[int, list] = 1,
         lambda_: np.float64 = 0,
         debug: bool = True,
         copy_X: bool = True,
@@ -24,6 +25,8 @@ class MultipleLinearRegression(IModel):
             The learning rate, by default 0.0001
         num_iterations : int, optional
             The number of iterations, by default 10000
+        degree : Union[int, list], optional
+            The degree of the polynomial, by default 1
         lambda_ : np.float64, optional
             The regularization parameter, by default 0
         debug : bool, optional
@@ -42,6 +45,11 @@ class MultipleLinearRegression(IModel):
         self._copy_X = copy_X
         self._X_scalar = X_scalar
         self._Y_scalar = Y_scalar
+
+        if isinstance(degree, int):
+            self._indexes = np.arange(degree + 1)
+        else:
+            self._indexes = np.array(degree)
 
         self._weights: np.ndarray = None
         self._intercept: np.float64 = None
@@ -150,6 +158,43 @@ class MultipleLinearRegression(IModel):
         db = np.sum(self._y_hat(X, W, b) - Y) / m
         return dw, db
 
+    def _get_degree(self, data: np.ndarray, degree: int) -> np.ndarray:
+        """
+        Parameters
+        ----------
+        data : np.ndarray
+            The input array of shape (n_samples,)
+        degree : int
+            The degree of the polynomial
+
+        Returns
+        -------
+        np.ndarray
+            The polynomial of the given degree
+        """
+
+        return data**degree
+
+    def _get_polynomial(self, data: np.ndarray) -> np.ndarray:
+        """
+        Parameters
+        ----------
+        data : np.ndarray
+            The input array of shape (n_samples, n_features)
+
+        Returns
+        -------
+        np.ndarray
+            The polynomial of the given degree of shape (n_samples, n_features * degree)
+        """
+        m, n = data.shape
+        result = np.zeros((m, len(self._indexes) * n))
+
+        for i, index in enumerate(self._indexes):
+            result[:, i * n : (i + 1) * n] = self._get_degree(data, index)
+
+        return result
+
     def _getXandY(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Return the input and output arrays.
@@ -167,7 +212,7 @@ class MultipleLinearRegression(IModel):
             The input and output arrays
         """
         if self._copy_X:
-            X = np.copy(X)
+            X = X.copy()
 
         if len(X.shape) == 1:
             X = X.reshape(-1, 1)
@@ -182,6 +227,9 @@ class MultipleLinearRegression(IModel):
             Y = self._Y_scalar.transform(Y).reshape(-1)
         else:
             Y = Y.reshape(-1)
+
+        if len(self._indexes) > 1:
+            X = self._get_polynomial(X)
 
         return X, Y
 
