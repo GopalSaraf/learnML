@@ -9,8 +9,8 @@ class LogisticRegression(IModel):
 
     def __init__(
         self,
-        learning_rate: np.float64 = 0.0001,
-        num_iterations: int = 10000,
+        learning_rate: np.float64 = 0.001,
+        num_iterations: int = 1000,
         debug: bool = True,
         copy_X: bool = True,
         X_scalar: IFeatureEngineering = None,
@@ -19,9 +19,9 @@ class LogisticRegression(IModel):
         Parameters
         ----------
         learning_rate : np.float64, optional
-            The learning rate, by default 0.0001
+            The learning rate, by default 0.001
         num_iterations : int, optional
-            The number of iterations, by default 10000
+            The number of iterations, by default 1000
         debug : bool, optional
             Whether to print debug messages, by default True
         copy_X : bool, optional
@@ -90,6 +90,7 @@ class LogisticRegression(IModel):
     ) -> np.float64:
         """
         Return the cost of the model given X, y, W, and b.
+        (Cross-entropy loss)
 
         Parameters
         ----------
@@ -211,7 +212,7 @@ class LogisticRegression(IModel):
             Y = Y.reshape(-1)
 
         if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
+            X = self._X_scalar.transform(X)
 
         return X, Y
 

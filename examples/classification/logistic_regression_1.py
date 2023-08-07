@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from learnML.classification import LogisticRegression
-from learnML.preprocessing import TrainTestSplit, ZScoreNormalization
+from learnML.preprocessing import train_test_split, ZScoreNormalization
 
 # Load the data
 dataset = pd.read_csv("data/social_ads.csv")
@@ -11,7 +11,7 @@ X = dataset.iloc[:, :-1].values
 y = dataset.iloc[:, -1].values
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = TrainTestSplit.train_test_split(X, y, test_size=0.25)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 
 print("Training set:")
 print("X_train.shape:", X_train.shape)

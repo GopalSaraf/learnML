@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-from learnML.preprocessing import OneHotEncoder, TrainTestSplit
+from learnML.preprocessing import OneHotEncoder, train_test_split
 from learnML.regression import MultipleLinearRegression
 
 data = pd.read_csv("data/50_startups.csv")
@@ -18,7 +18,7 @@ print(X.dtype)
 print(X)
 
 
-X_train, X_test, y_train, y_test = TrainTestSplit.train_test_split(X, y, test_size=0.2)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 
 model = MultipleLinearRegression()

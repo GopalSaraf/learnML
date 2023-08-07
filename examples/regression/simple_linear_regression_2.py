@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from learnML.regression import UnivariateLinearRegression
-from learnML.preprocessing import TrainTestSplit
+from learnML.preprocessing import train_test_split
 
 from plt import plot
 
@@ -13,7 +13,7 @@ X = data.iloc[:, :-1].values
 y = data.iloc[:, 1].values
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = TrainTestSplit.train_test_split(X, y, test_size=0.3)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
 
 # Train the model
 model = UnivariateLinearRegression(learning_rate=0.001, num_iterations=1000)

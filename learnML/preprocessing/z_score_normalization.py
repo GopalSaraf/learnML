@@ -111,6 +111,8 @@ class ZScoreNormalization(IFeatureEngineering):
         np.ndarray
             The normalized data
         """
+        if data is None:
+            data = self._data
         self.fit(data)
         return self.transform(data)
 
