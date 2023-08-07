@@ -257,7 +257,7 @@ class LinearSVC(IModel):
 
         # Return 1 if the prediction is greater than or equal to 0, otherwise return -1
         return np.where(
-            self._y_hat(X, self._weights, self._intercept) >= 0, 1, -1
+            self._y_hat(X, self._weights, self._intercept) >= 0, 1, 0
         ).reshape(-1)
 
     def get_cost_history(self) -> np.ndarray:
