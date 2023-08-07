@@ -1,6 +1,8 @@
-# LearnML - Mastering Machine Learning Algorithms
+<h1 align="center">LearnML - Mastering Machine Learning Algorithms</h1>
 
+<p align="center">
 <img src="https://github.com/GopalSaraf/learnML/assets/83419951/5f8e7499-95bb-48e5-a198-eeb38e48b4a4" width="80%" height="auto" />
+</p>
 
 <br>
 <br>
