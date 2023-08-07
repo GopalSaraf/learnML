@@ -3,8 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from learnML.classification import LinearSVC
-from learnML.preprocessing import train_test_split, ZScoreNormalization
-from learnML.utils.accuracy import Metrics
 
 data = pd.read_csv("data/svm_data.csv")
 
@@ -23,10 +21,6 @@ print("After training:")
 print("Weights: ", model.get_weights())
 print("Intercept: ", model.get_intercept())
 
-# print("After training:")
-# print("Weights: ", model.w)
-# print("Intercept: ", model.b)
-
 
 def visualize_svm():
     def get_hyperplane_value(x, w, b, offset):
@@ -41,9 +35,6 @@ def visualize_svm():
 
     weights = model.get_weights()
     intercept = model.get_intercept()
-
-    # weights = model.w
-    # intercept = model.b
 
     x1_1 = get_hyperplane_value(x0_1, weights, intercept, 0)
     x1_2 = get_hyperplane_value(x0_2, weights, intercept, 0)
