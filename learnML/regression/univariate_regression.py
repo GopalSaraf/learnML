@@ -1,8 +1,7 @@
-from typing import Tuple
+from typing import Tuple, Union
 import numpy as np
-import copy
 
-from ..interfaces import IModel, IFeatureScaling
+from ..interfaces import IModel, IFeatureEngineering
 
 
 class UnivariateLinearRegression(IModel):
@@ -14,33 +13,38 @@ class UnivariateLinearRegression(IModel):
         num_iterations: int = 10000,
         debug: bool = True,
         copy_X: bool = True,
-        X_scalar: IFeatureScaling = None,
-        Y_scalar: IFeatureScaling = None,
+        X_scalar: IFeatureEngineering = None,
+        Y_scalar: IFeatureEngineering = None,
     ) -> None:
         """
-        Initialize the model.
-
         Parameters
         ----------
         learning_rate : np.float64, optional
-            The learning rate of the model, by default 0.001
+            The learning rate, by default 0.001
         num_iterations : int, optional
-            The number of iterations to train the model, by default 10000
+            The number of iterations, by default 10000
+        lambda_ : np.float64, optional
+            The regularization parameter, by default 0
         debug : bool, optional
-            Whether to print the iteration number, cost, and parameters, by default True
+            Whether to print debug information, by default True
         copy_X : bool, optional
-            Whether to copy the input array, by default True
-        X_scalar : IFeatureScaling, optional
-            The feature scaling object for the input array, by default None
-        Y_scalar : IFeatureScaling, optional
-            The feature scaling object for the output array, by default None
+            Whether to copy the input data, by default True
+        X_scalar : IFeatureEngineering, optional
+            The feature scaling object for the input data, by default None
+        Y_scalar : IFeatureEngineering, optional
+            The feature scaling object for the output data, by default None
         """
-        super().__init__(
-            learning_rate, num_iterations, X_scalar, Y_scalar, debug, copy_X
-        )
+        self._learning_rate = learning_rate
+        self._num_iterations = num_iterations
+        self._debug = debug
+        self._copy_X = copy_X
+        self._X_scalar = X_scalar
+        self._Y_scalar = Y_scalar
 
         self._weight: np.float64 = None
         self._intercept: np.float64 = None
+
+        self._debug_freq = num_iterations // 10
 
     def _y_hat(self, x: np.float64, w: np.float64, b: np.float64) -> np.float64:
         """
@@ -63,7 +67,7 @@ class UnivariateLinearRegression(IModel):
         return w * x + b
 
     def _cost(
-        self, X: np.ndarray, Y: np.ndarray, w: np.float64 = None, b: np.float64 = None
+        self, X: np.ndarray, Y: np.ndarray, w: np.float64, b: np.float64
     ) -> np.float64:
         """
         Return the cost function given X, Y, w, and b.
@@ -71,13 +75,13 @@ class UnivariateLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples,)
         Y : np.ndarray
-            The output array
-        w : np.float64, optional
-            The weight, by default None
-        b : np.float64, optional
-            The intercept, by default None
+            The output array of shape (n_samples,)
+        w : np.float64
+            The weight
+        b : np.float64
+            The intercept
 
         Returns
         -------
@@ -87,17 +91,12 @@ class UnivariateLinearRegression(IModel):
 
         m = X.shape[0]
         cost = 0
-
-        if w is None:
-            w = self._weight
-        if b is None:
-            b = self._intercept
-
         for i in range(m):
             y_hat_i = self._y_hat(X[i], w, b)
             cost_i = (y_hat_i - Y[i]) ** 2
             cost += cost_i
-        return cost / (2 * m)
+        cost /= m
+        return cost
 
     def _gradient(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.float64, np.float64]:
         """
@@ -106,42 +105,62 @@ class UnivariateLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples,)
         Y : np.ndarray
-            The output array
+            The output array of shape (n_samples,)
 
         Returns
         -------
         tuple
-            The gradient of the cost function
+            The gradient of the cost function with respect to w and b
         """
 
         m = X.shape[0]
         dw = 0
         db = 0
+
         for i in range(m):
             y_hat_i = self._y_hat(X[i], self._weight, self._intercept)
             dw_i = (y_hat_i - Y[i]) * X[i]
             dw += dw_i
             db_i = y_hat_i - Y[i]
             db += db_i
+
         return dw / m, db / m
 
-    def _printIteration(self, i: int) -> None:
+    def _getXandY(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Print the iteration number, cost, and parameters.
+        Return the input and output arrays.
 
         Parameters
         ----------
-        i : int
-            The iteration number
+        X : np.ndarray
+            The input array of shape (n_samples,)
+        Y : np.ndarray
+            The output array of shape (n_samples,)
 
         Returns
         -------
-        None
+        tuple
+            The input and output arrays
         """
-        n = len(str(self._num_iterations))
-        print(f"Iteration: {i:{n}n} | Cost: {self._J_history[-1]:0.6e}")
+
+        if len(X.shape) == 2:
+            X = X.reshape(-1)
+
+        if len(Y.shape) == 2:
+            Y = Y.reshape(-1)
+
+        if self._copy_X:
+            X = np.copy(X)
+
+        if self._X_scalar is not None:
+            X = self._X_scalar.transform(X)
+
+        if self._Y_scalar is not None:
+            Y = self._Y_scalar.transform(Y)
+
+        return X, Y
 
     def fit(
         self, X: np.ndarray, Y: np.ndarray, w: np.float64 = 0.0, b: np.float64 = 0.0
@@ -152,9 +171,9 @@ class UnivariateLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples,)
         Y : np.ndarray
-            The output array
+            The output array of shape (n_samples,)
         w : np.float64, optional
             The initial weight, by default 0.0
         b : np.float64, optional
@@ -163,86 +182,81 @@ class UnivariateLinearRegression(IModel):
         Returns
         -------
         None
-
-        Notes
-        -----
-        The model will be trained for the number of iterations specified in the constructor.
-
-        The model will be trained using the learning rate specified in the constructor.
-
-        The model will be trained using the gradient descent algorithm.
-
         """
+
+        assert len(X.shape) == 1 or (
+            len(X.shape) == 2 and X.shape[1] == 1
+        ), "X must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
+
+        assert len(Y.shape) == 1 or (
+            len(Y.shape) == 2 and Y.shape[1] == 1
+        ), "Y must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
+
+        X, Y = self._getXandY(X, Y)
 
         self._weight = w
         self._intercept = b
-        self._J_history = [self._cost(X, Y)]
+        self._J_history = [self._cost(X, Y, self._weight, self._intercept)]
         self._p_history = []
-
-        if self._copy_X:
-            X = copy.deepcopy(X)
-
-        if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
-
-        if self._Y_scalar is not None:
-            Y = self._Y_scalar.fit_transform(Y).reshape(-1)
 
         for i in range(self._num_iterations):
             dw, db = self._gradient(X, Y)
             self._weight -= self._learning_rate * dw
             self._intercept -= self._learning_rate * db
 
-            self._J_history.append(self._cost(X, Y))
+            self._J_history.append(self._cost(X, Y, self._weight, self._intercept))
             self._p_history.append((self._weight, self._intercept))
 
-            if self._debug and i % (self._num_iterations // 10) == 0:
+            if self._debug and i % self._debug_freq == 0:
                 self._printIteration(i)
 
         if self._debug:
             self._printIteration(self._num_iterations)
 
-    def predict(self, x: np.float64) -> np.float64:
+    def predict(
+        self, X: Union[np.ndarray, np.float64]
+    ) -> Union[np.ndarray, np.float64]:
         """
         Return the predicted value of y given x.
 
         Parameters
         ----------
-        x : np.float64
-            The input value
+        X : Union[np.ndarray, np.float64]
+            The input value or array of shape (n_samples,)
 
         Returns
         -------
-        np.float64
-            The predicted value of y
+        Union[np.ndarray, np.float64]
+            The predicted value or array of shape (n_samples,)
         """
-        if self._X_scalar is not None:
-            x = self._X_scalar.transform(x)
+        assert self._weight is not None and self._intercept is not None, (
+            "The model must be trained before making predictions. "
+            "Call the fit method first."
+        )
 
-        prediction = self._y_hat(x, self._weight, self._intercept)
+        isXScalar = isinstance(X, np.float64) or isinstance(X, int)
+
+        if isinstance(X, np.ndarray):
+            assert len(X.shape) == 1 or (
+                len(X.shape) == 2 and X.shape[1] == 1
+            ), "X must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
+        else:
+            X = np.array([X])
+
+        if self._X_scalar is not None:
+            X = self._X_scalar.transform(X)
+
+        predictions = [self._y_hat(x, self._weight, self._intercept) for x in X]
 
         if self._Y_scalar is not None:
-            prediction = self._Y_scalar.inverse_transform(prediction)
+            predictions = self._Y_scalar.inverse_transform(predictions)
 
-        return prediction
+        if isXScalar:
+            return predictions[0]
+        else:
+            return np.array(predictions)
 
-    def predict_all(self, X: np.ndarray) -> np.ndarray:
-        """
-        Return the predicted values of y given X.
-
-        Parameters
-        ----------
-        X : np.ndarray
-            The input array
-
-        Returns
-        -------
-        np.ndarray
-            The predicted values of y
-        """
-        return np.array([self.predict(x) for x in X])
-
-    def cost(
+    def score(
         self, X: np.ndarray, Y: np.ndarray, w: np.float64 = None, b: np.float64 = None
     ) -> np.float64:
         """
@@ -251,9 +265,9 @@ class UnivariateLinearRegression(IModel):
         Parameters
         ----------
         X : np.ndarray
-            The input array
+            The input array of shape (n_samples,)
         Y : np.ndarray
-            The output array
+            The output array of shape (n_samples,)
         w : np.float64, optional
             The weight, by default None
         b : np.float64, optional
@@ -264,21 +278,17 @@ class UnivariateLinearRegression(IModel):
         np.float64
             The computed cost
         """
+        X, Y = self._getXandY(X, Y)
 
         if w is None:
             w = self._weight
+
         if b is None:
             b = self._intercept
 
-        if self._X_scalar is not None:
-            X = self._X_scalar.fit_transform(X)
-
-        if self._Y_scalar is not None:
-            Y = self._Y_scalar.fit_transform(Y)
-
         return self._cost(X, Y, w, b)
 
-    def get_J_history(self) -> np.ndarray:
+    def get_cost_history(self) -> np.ndarray:
         """
         Return the history of the cost function.
 
@@ -289,7 +299,7 @@ class UnivariateLinearRegression(IModel):
         """
         return np.array(self._J_history)
 
-    def get_p_history(self) -> np.ndarray:
+    def get_parameter_history(self) -> np.ndarray:
         """
         Return the history of the parameters.
 
@@ -321,3 +331,16 @@ class UnivariateLinearRegression(IModel):
             The value of b
         """
         return self._intercept
+
+    def _printIteration(self, iteration: int) -> None:
+        """
+        Print the current iteration and cost.
+
+        Parameters
+        ----------
+        iteration : int
+            The current iteration
+        """
+        n = len(str(self._num_iterations)) + 1
+        cost = self._J_history[-1]
+        print(f"Iteration: {iteration:{n}n} | Cost: {cost:0.6e}")
