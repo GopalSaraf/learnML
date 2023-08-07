@@ -5,7 +5,23 @@ from ..interfaces import IModel, IFeatureEngineering
 
 
 class LogisticRegression(IModel):
-    """Logistic Regression Model"""
+    """
+    Logistic Regression Model
+
+    Advantages
+    ----------
+    - Simple and efficient
+    - Can be updated easily with new data using stochastic gradient descent
+    - Outputs have a nice probabilistic interpretation
+    - Can be regularized to avoid overfitting
+    - Works well with high dimensional data
+    - Works well with sparse data
+
+    Disadvantages
+    -------------
+    - Not suitable for large number of features
+    - Not suitable for non-linear problems
+    """
 
     def __init__(
         self,

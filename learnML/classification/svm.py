@@ -5,7 +5,21 @@ from ..interfaces import IModel, IFeatureEngineering
 
 
 class LinearSVC(IModel):
-    """Support Vector Classifier"""
+    """
+    Support Vector Classifier
+
+    Advantages
+    ----------
+    - Effective in high dimensional spaces
+    - Works well with small number of samples
+    - Works efficiently when there is a clear margin of separation between classes
+    - Uses a subset of training points in the decision function (called support vectors), so it is also memory efficient
+
+    Disadvantages
+    -------------
+    - Not suitable for large number of samples (training time is higher)
+    - Not suitable for noisy data with overlapping classes
+    """
 
     def __init__(
         self,
