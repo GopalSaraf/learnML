@@ -5,8 +5,6 @@
 </p>
 
 <br>
-<br>
-<br>
 
 **NOTE**: The repository is **under development** and is not ready for use.
 
