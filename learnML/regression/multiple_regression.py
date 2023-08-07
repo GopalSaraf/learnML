@@ -5,7 +5,21 @@ from ..interfaces import IModel, IFeatureEngineering
 
 
 class MultipleLinearRegression(IModel):
-    """Multiple Feature Linear Regression Model"""
+    """
+    Multiple Feature Linear Regression Model
+
+    Advantages
+    ----------
+    - Easy to implement
+    - Easy to interpret the output
+    - Computationally cheap
+
+    Disadvantages
+    -------------
+    - Poor performance on non-linear data
+    - Sensitive to outliers
+    - Sensitive to overfitting
+    """
 
     def __init__(
         self,

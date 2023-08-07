@@ -5,7 +5,21 @@ from ..interfaces import IModel, IFeatureEngineering
 
 
 class UnivariateLinearRegression(IModel):
-    """Univariate Linear Regression model."""
+    """
+    Univariate Linear Regression model.
+
+    Advatanges
+    ----------
+    - Easy to implement
+    - Easy to interpret the output
+    - Computationally cheap
+
+    Disadvantages
+    -------------
+    - Poor performance on non-linear data
+    - Sensitive to outliers
+    - Sensitive to overfitting
+    """
 
     def __init__(
         self,
@@ -71,6 +85,7 @@ class UnivariateLinearRegression(IModel):
     ) -> np.float64:
         """
         Return the cost function given X, Y, w, and b.
+        (Mean Squared Error)
 
         Parameters
         ----------
@@ -88,14 +103,16 @@ class UnivariateLinearRegression(IModel):
         np.float64
             The computed cost
         """
-
+        # Number of samples
         m = X.shape[0]
         cost = 0
+
+        # cost = 1 / 2m * sum((y_hat_i - y_i) ^ 2)
         for i in range(m):
             y_hat_i = self._y_hat(X[i], w, b)
             cost_i = (y_hat_i - Y[i]) ** 2
             cost += cost_i
-        cost /= m
+        cost /= 2 * m
         return cost
 
     def _gradient(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.float64, np.float64]:
@@ -111,13 +128,16 @@ class UnivariateLinearRegression(IModel):
 
         Returns
         -------
-        tuple
+        Tuple[np.float64, np.float64]
             The gradient of the cost function with respect to w and b
         """
-
+        # Number of samples
         m = X.shape[0]
         dw = 0
         db = 0
+
+        # dw = 1 / m * sum((y_hat_i - y_i) * x_i)
+        # db = 1 / m * sum(y_hat_i - y_i)
 
         for i in range(m):
             y_hat_i = self._y_hat(X[i], self._weight, self._intercept)
@@ -144,16 +164,27 @@ class UnivariateLinearRegression(IModel):
         tuple
             The input and output arrays
         """
+        # Check the shape of X and Y
+        assert len(X.shape) == 1 or (
+            len(X.shape) == 2 and X.shape[1] == 1
+        ), "X must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
 
+        assert len(Y.shape) == 1 or (
+            len(Y.shape) == 2 and Y.shape[1] == 1
+        ), "Y must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
+
+        # Copy the arrays if necessary
+        if self._copy_X:
+            X = np.copy(X)
+
+        # Reshape the arrays if necessary
         if len(X.shape) == 2:
             X = X.reshape(-1)
 
         if len(Y.shape) == 2:
             Y = Y.reshape(-1)
 
-        if self._copy_X:
-            X = np.copy(X)
-
+        # Scale the arrays if necessary
         if self._X_scalar is not None:
             X = self._X_scalar.transform(X)
 
@@ -183,30 +214,28 @@ class UnivariateLinearRegression(IModel):
         -------
         None
         """
-
-        assert len(X.shape) == 1 or (
-            len(X.shape) == 2 and X.shape[1] == 1
-        ), "X must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
-
-        assert len(Y.shape) == 1 or (
-            len(Y.shape) == 2 and Y.shape[1] == 1
-        ), "Y must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
-
         X, Y = self._getXandY(X, Y)
 
         self._weight = w
         self._intercept = b
+
         self._J_history = [self._cost(X, Y, self._weight, self._intercept)]
         self._p_history = []
 
+        # Gradient descent
         for i in range(self._num_iterations):
+            # Compute the gradient
             dw, db = self._gradient(X, Y)
+
+            # Update the weight and intercept
             self._weight -= self._learning_rate * dw
             self._intercept -= self._learning_rate * db
 
+            # Save the cost and parameters
             self._J_history.append(self._cost(X, Y, self._weight, self._intercept))
             self._p_history.append((self._weight, self._intercept))
 
+            # Print the cost and parameters
             if self._debug and i % self._debug_freq == 0:
                 self._printIteration(i)
 
@@ -229,6 +258,7 @@ class UnivariateLinearRegression(IModel):
         Union[np.ndarray, np.float64]
             The predicted value or array of shape (n_samples,)
         """
+        # Check if the model is trained
         assert self._weight is not None and self._intercept is not None, (
             "The model must be trained before making predictions. "
             "Call the fit method first."
@@ -251,10 +281,7 @@ class UnivariateLinearRegression(IModel):
         if self._Y_scalar is not None:
             predictions = self._Y_scalar.inverse_transform(predictions)
 
-        if isXScalar:
-            return predictions[0]
-        else:
-            return np.array(predictions)
+        return predictions[0] if isXScalar else np.array(predictions)
 
     def score(
         self, X: np.ndarray, Y: np.ndarray, w: np.float64 = None, b: np.float64 = None
@@ -280,11 +307,8 @@ class UnivariateLinearRegression(IModel):
         """
         X, Y = self._getXandY(X, Y)
 
-        if w is None:
-            w = self._weight
-
-        if b is None:
-            b = self._intercept
+        w = self._weight if w is None else w
+        b = self._intercept if b is None else b
 
         return self._cost(X, Y, w, b)
 
