@@ -6,11 +6,7 @@ class IModel(ABC):
     """Interface for model classes."""
 
     @abstractmethod
-    def fit(
-        self,
-        X: np.ndarray,
-        Y: np.ndarray,
-    ) -> None:
+    def fit(self, X: np.ndarray, Y: np.ndarray) -> None:
         """
         Fit the model to the data.
 
@@ -49,11 +45,7 @@ class IModel(ABC):
         pass
 
     @abstractmethod
-    def score(
-        self,
-        X: np.ndarray,
-        Y: np.ndarray,
-    ) -> float:
+    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
         """
         Calculate the score of the model.
 

@@ -1,5 +1,32 @@
 import numpy as np
-from typing import Tuple
+import pandas as pd
+from typing import Tuple, Union
+
+
+def _get_numpy_data(data: Union[pd.DataFrame, np.ndarray, list]) -> np.ndarray:
+    """
+    Convert the data to numpy array.
+
+    Parameters
+    ----------
+    data : Union[pd.DataFrame, np.ndarray, list]
+        The data to be converted
+
+    Returns
+    -------
+    np.ndarray
+        The data as numpy array
+    """
+    if isinstance(data, pd.DataFrame):
+        data = data.to_numpy()
+    elif isinstance(data, np.ndarray):
+        data = data
+    elif isinstance(data, list):
+        data = np.array(data)
+    else:
+        raise TypeError("data must be either pandas DataFrame or numpy array")
+
+    return data
 
 
 def train_test_split(
@@ -25,6 +52,9 @@ def train_test_split(
         The training and testing sets
         X_train, X_test, Y_train, Y_test
     """
+    X = _get_numpy_data(X)
+    Y = _get_numpy_data(Y)
+
     assert test_size > 0 and test_size < 1, "test_size must be between 0 and 1"
     assert X.shape[0] == Y.shape[0], "X and Y must have the same number of samples"
     assert X.shape[0] > 0, "X must have at least one sample"
@@ -32,10 +62,10 @@ def train_test_split(
 
     np.random.seed(random_state)
 
-    if len(X.shape) == 1:
+    if X.ndim == 1:
         X = X.reshape(X.shape[0], 1)
 
-    if len(Y.shape) == 1:
+    if Y.ndim == 1:
         Y = Y.reshape(Y.shape[0], 1)
 
     m = X.shape[0]
@@ -76,6 +106,10 @@ class KFoldSplit:
             The number of folds, by default 5
         """
         assert k > 1, "k must be greater than 1"
+
+        X = _get_numpy_data(X)
+        if Y is not None:
+            Y = _get_numpy_data(Y)
 
         self._X = X
         self._Y = Y
@@ -170,6 +204,10 @@ class OneLeaveOutSplit:
         Y : np.ndarray, optional
             The output features, by default None
         """
+        X = _get_numpy_data(X)
+        if Y is not None:
+            Y = _get_numpy_data(Y)
+
         self._X = X
         self._Y = Y
 

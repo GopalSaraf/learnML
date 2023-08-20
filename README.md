@@ -25,6 +25,10 @@ The primary goal of this repository is to provide educational resources for unde
 5. Install the dependencies using `pip install -r requirements.txt`.
 6. Install the LearnML library using `pip install .`.
 
+## Documentation
+
+The documentation for the LearnML library is available [here](/docs/README.md).
+
 ## Examples
 
 Explore the examples in the `examples` folder to see how to use the algorithms. Each example showcases a specific algorithm on a sample dataset.

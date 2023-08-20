@@ -1,4 +1,4 @@
-from .accuracy import (
+from .metrics import (
     Metrics,
     confusion_matrix,
     accuracy_score,

@@ -1,5 +1,5 @@
 from .logistic_regression import LogisticRegression
-from .svm import LinearSVC
+from .linear_svm import LinearSVC
 
 __all__ = [
     "LogisticRegression",

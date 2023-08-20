@@ -1,105 +1,97 @@
-# Class `IFeatureEngineering`
+# Interface [`IFeatureEngineering`](/learnML/interfaces/ifeature_engineering.py#L5)
 
-## Description
+## Introduction
 
-An abstract interface class for feature engineering classes in the `learnML` library. This class outlines the methods that any feature engineering class in the library should implement. Feature engineering classes derived from `IFeatureEngineering` are designed to preprocess and transform input data for machine learning tasks.
+`IFeatureEngineering` is an abstract interface that defines methods for performing feature engineering on input data. Feature engineering involves transforming and preprocessing raw input data to create more informative and suitable features for machine learning models.
 
 ## Usage
 
 ```python
 from learnML.interfaces import IFeatureEngineering
 
-# Define a custom feature engineering class that inherits from IFeatureEngineering
+# Create a custom feature engineering class that implements the IFeatureEngineering interface
 class CustomFeatureEngineering(IFeatureEngineering):
+    def __init__(self, data):
+        # Initialize necessary attributes or parameters
+        super().__init__(data)
+
     def fit(self, data=None):
-        # Implementation of the fit method
+        # Implement the fitting logic for the feature engineering
         pass
 
     def transform(self, data=None):
-        # Implementation of the transform method
+        # Implement the transformation logic for the feature engineering
         pass
 
     def fit_transform(self, data=None):
-        # Implementation of the fit_transform method
+        # Implement the fitting and transformation logic for the feature engineering
         pass
 
     def inverse_transform(self, data):
-        # Implementation of the inverse_transform method
-        pass
-```
-
-## Constructor
-
-### `__init__(data: np.ndarray) -> None`
-
-Initialize the feature engineering instance with input data.
-
-- `data` (np.ndarray): The input array of shape `(n_samples, n_features)`.
-
-## Methods
-
-### `fit(data: np.ndarray = None) -> None`
-
-Fit the feature engineering instance to data.
-
-- `data` (np.ndarray, optional): The input array of shape `(n_samples, n_features)`. Default is `None` (uses the input array passed in the constructor).
-
-### `transform(data: np.ndarray = None) -> np.ndarray`
-
-Transform data using the feature engineering instance.
-
-- `data` (np.ndarray, optional): The input array of shape `(n_samples, n_features)`. Default is `None` (uses the input array passed in the constructor).
-- Returns: The transformed data of shape `(n_samples, n_features)`.
-
-### `fit_transform(data: np.ndarray = None) -> np.ndarray`
-
-Fit the feature engineering instance with data and transform data using it.
-
-- `data` (np.ndarray, optional): The input array of shape `(n_samples, n_features)`. Default is `None` (uses the input array passed in the constructor).
-- Returns: The transformed data of shape `(n_samples, n_features)`.
-
-### `inverse_transform(data: np.ndarray) -> np.ndarray`
-
-Convert the data back to the original representation.
-
-- `data` (np.ndarray): The input array of shape `(n_samples, n_features)`.
-- Returns: The transformed data of shape `(n_samples, n_features)`.
-
-## Examples
-
-```python
-# Define a custom feature engineering class that inherits from IFeatureEngineering
-class CustomFeatureEngineering(IFeatureEngineering):
-    def fit(self, data=None):
-        # Implementation of the fit method
-        pass
-
-    def transform(self, data=None):
-        # Implementation of the transform method
-        pass
-
-    def fit_transform(self, data=None):
-        # Implementation of the fit_transform method
-        pass
-
-    def inverse_transform(self, data):
-        # Implementation of the inverse_transform method
+        # Implement the inverse transformation logic for the feature engineering
         pass
 
 # Create an instance of the custom feature engineering class
-feature_engineering = CustomFeatureEngineering(data=input_data)
+feature_engineer = CustomFeatureEngineering(data=...)
 
-# Fit the feature engineering instance to data
-feature_engineering.fit()
+# Fit the feature engineering object to the data
+feature_engineer.fit()
 
-# Transform input data using the feature engineering instance
-transformed_data = feature_engineering.transform()
+# Transform the data using the feature engineering
+transformed_data = feature_engineer.transform()
 
-# Inverse transform the transformed data
-original_data = feature_engineering.inverse_transform(transformed_data)
+# Inverse transform the transformed data back to the original representation
+original_data = feature_engineer.inverse_transform(transformed_data)
 ```
+
+## Methods
+
+### Constructor
+
+#### [`__init__(data: np.ndarray) -> None`](/learnML/interfaces/ifeature_engineering.py#L9)
+
+Initialize the feature engineering object.
+
+- `data` (np.ndarray): The input data array with shape `(n_samples, n_features)`.
+
+This constructor sets up the input data for feature engineering.
+
+### Methods
+
+#### [`fit(data: np.ndarray = None) -> None`](/learnML/interfaces/ifeature_engineering.py#L20)
+
+Fit the feature engineering object to the data.
+
+- `data` (np.ndarray, optional): The input data array with shape `(n_samples, n_features)`. If not provided, the input data passed to the constructor will be used.
+
+This method adapts the feature engineering object to the input data if necessary.
+
+#### [`transform(data: np.ndarray = None) -> np.ndarray`](/learnML/interfaces/ifeature_engineering.py#L33)
+
+Transform data using the feature engineering object.
+
+- `data` (np.ndarray, optional): The input data array with shape `(n_samples, n_features)`. If not provided, the input data passed to the constructor will be used.
+
+Returns the transformed data array with shape `(n_samples, n_features)`.
+
+#### [`fit_transform(data: np.ndarray = None) -> np.ndarray`](/learnML/interfaces/ifeature_engineering.py#L51)
+
+Fit the feature engineering object with data and transform it.
+
+- `data` (np.ndarray, optional): The input data array with shape `(n_samples, n_features)`. If not provided, the input data passed to the constructor will be used.
+
+Returns the transformed data array with shape `(n_samples, n_features)`.
+
+#### [`inverse_transform(data: np.ndarray) -> np.ndarray`](/learnML/interfaces/ifeature_engineering.py#L69)
+
+Convert the transformed data back to the original representation.
+
+- `data` (np.ndarray): The transformed data array with shape `(n_samples, n_features)`.
+
+Returns the data array with shape `(n_samples, n_features)` in the original representation.
 
 ## Notes
 
-- The `IFeatureEngineering` class provides a common interface for all feature engineering classes in the `learnML` library.
-- Any feature engineering class that inherits from `IFeatureEngineering` must implement the `fit`, `transform`, `fit_transform`, and `inverse_transform` methods.
+- The `IFeatureEngineering` interface provides a structured approach to implementing feature engineering classes that can be used with various machine learning models.
+- Feature engineering can include tasks such as scaling, normalization, one-hot encoding, and more.
+- Model classes that require feature engineering can accept instances of classes implementing this interface to preprocess and transform data effectively.

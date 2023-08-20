@@ -1,123 +1,140 @@
-# Class `IRegression`
+# Interface [`IRegression`](/learnML/interfaces/iregression.py#L7)
 
-## Description
+## Introduction
 
-An abstract interface class for regression model classes in the `learnML` library. This class extends the `IModel` abstract class and provides additional methods and attributes specifically for regression models.
+`IRegression` is an abstract interface that extends the `IModel` interface and specifies the methods and attributes expected from regression model classes. Regression models are used to predict continuous target variables based on input features.
 
 ## Usage
 
 ```python
 from learnML.interfaces import IRegression
 
-# Define a custom regression model class that inherits from IRegression
-class CustomRegressionModel(IRegression):
+# Create a custom regression model class that implements the IRegression interface
+class CustomRegression(IRegression):
+    def __init__(self, learning_rate, n_iterations):
+        # Initialize necessary attributes or hyperparameters
+        super().__init__(learning_rate, n_iterations)
+
     def fit(self, X, Y):
-        # Implementation of the fit method
+        # Implement the training logic for the regression model
         pass
 
     def predict(self, X):
-        # Implementation of the predict method
+        # Implement the prediction logic for the regression model
         pass
 
     def score(self, X, Y):
-        # Implementation of the score method
-        pass
-```
-
-## Constructor
-
-### `__init__(learning_rate: np.float64, n_iterations: int, debug: bool = True, copy_x: bool = True) -> None`
-
-Initialize the regression model.
-
-- `learning_rate` (np.float64): The learning rate.
-- `n_iterations` (int): The number of iterations.
-- `debug` (bool, optional): Whether to print debug messages. Default is `True`.
-- `copy_x` (bool, optional): Whether to copy the input array. Default is `True`.
-
-## Methods
-
-### `fit(X: np.ndarray, Y: np.ndarray) -> None`
-
-Fit the regression model to the data.
-
-- `X` (np.ndarray): The array-like object containing the input data of shape `(n_samples, n_features)`.
-- `Y` (np.ndarray): The array-like object containing the output data of shape `(n_samples, n_targets)` or `(n_samples,)`.
-
-### `predict(X: np.ndarray) -> np.ndarray`
-
-Predict the output given the input.
-
-- `X` (np.ndarray): The array-like object containing the input data of shape `(n_samples, n_features)`.
-- Returns: An array-like object containing the output data of shape `(n_samples, n_targets)` or `(n_samples,)`.
-
-### `score(X: np.ndarray, Y: np.ndarray) -> float`
-
-Calculate the score of the regression model.
-
-- `X` (np.ndarray): The array-like object containing the input data of shape `(n_samples, n_features)`.
-- `Y` (np.ndarray): The array-like object containing the output data of shape `(n_samples, n_targets)` or `(n_samples,)`.
-- Returns: The score of the model as a float.
-
-### `get_cost_history() -> np.ndarray`
-
-Return the history of the cost function.
-
-### `get_parameter_history() -> np.ndarray`
-
-Return the history of the parameters.
-
-### `get_weights() -> np.ndarray`
-
-Return the weights.
-
-### `get_intercept() -> np.float64`
-
-Return the intercept.
-
-### `_debug_print(iteration: int, cost: np.float64) -> None`
-
-Print the current iteration and cost.
-
-## Examples
-
-```python
-# Define a custom regression model class that inherits from IRegression
-class CustomRegressionModel(IRegression):
-    def fit(self, X, Y):
-        # Implementation of the fit method
-        pass
-
-    def predict(self, X):
-        # Implementation of the predict method
-        pass
-
-    def score(self, X, Y):
-        # Implementation of the score method
+        # Implement the scoring logic for the regression model
         pass
 
 # Create an instance of the custom regression model
-regression_model = CustomRegressionModel(learning_rate=0.01, n_iterations=100)
+model = CustomRegression(learning_rate=0.01, n_iterations=1000)
 
-# Fit the model to data
-regression_model.fit(training_X, training_Y)
+# Load training data
+X_train = ...
+Y_train = ...
 
-# Make predictions using the model
-predictions = regression_model.predict(test_X)
+# Fit the model to the training data
+model.fit(X_train, Y_train)
 
-# Calculate the model's score
-model_score = regression_model.score(test_X, test_Y)
+# Load test data
+X_test = ...
+Y_test = ...
 
-# Access cost history and parameters history
-cost_history = regression_model.get_cost_history()
-params_history = regression_model.get_parameter_history()
+# Make predictions using the trained model
+predictions = model.predict(X_test)
 
-# Access model weights and intercept
-weights = regression_model.get_weights()
-intercept = regression_model.get_intercept()
+# Evaluate the model's performance
+score = model.score(X_test, Y_test)
+
+# Get cost history and model parameters history
+cost_history = model.get_cost_history()
+params_history = model.get_parameter_history()
+
+# Get learned weights and intercept
+weights = model.get_weights()
+intercept = model.get_intercept()
 ```
+
+## Methods and Attributes
+
+### Constructor
+
+#### [`__init__(learning_rate: np.float64, n_iterations: int, debug: bool = True, copy_x: bool = True) -> None`](/learnML/interfaces/iregression.py#L10)
+
+Initialize the regression model.
+
+- `learning_rate` (np.float64): The learning rate, controlling the step size of optimization.
+- `n_iterations` (int): The number of iterations for optimization.
+- `debug` (bool, optional): Whether to print debug messages, by default True.
+- `copy_x` (bool, optional): Whether to copy the input array, by default True.
+
+This constructor sets up basic parameters for the regression model and initializes necessary attributes.
+
+### Methods
+
+#### [`fit(X: np.ndarray, Y: np.ndarray) -> None`](/learnML/interfaces/iregression.py#L44)
+
+Fit the regression model to the provided data.
+
+- `X` (np.ndarray): The input array-like object containing the data with shape `(n_samples, n_features)`.
+- `Y` (np.ndarray): The output array-like object containing the target data with shape `(n_samples, n_targets)` or `(n_samples,)`.
+
+This method trains the regression model on the given data to learn relationships between input features and target variables.
+
+#### [`predict(X: np.ndarray) -> np.ndarray`](/learnML/interfaces/iregression.py#L48)
+
+Predict outputs based on the input data.
+
+- `X` (np.ndarray): The input array-like object containing the data with shape `(n_samples, n_features)`.
+
+This method utilizes the trained regression model to predict outputs corresponding to the input data.
+
+#### [`score(X: np.ndarray, Y: np.ndarray) -> float`](/learnML/interfaces/iregression.py#L52)
+
+Calculate the score of the regression model's performance.
+
+- `X` (np.ndarray): The input array-like object containing the data with shape `(n_samples, n_features)`.
+- `Y` (np.ndarray): The output array-like object containing the target data with shape `(n_samples, n_targets)` or `(n_samples, )`.
+
+This method evaluates the regression model's performance by comparing its predictions with the actual target data and returns a score reflecting its accuracy.
+
+#### [`get_cost_history() -> np.ndarray`](/learnML/interfaces/iregression.py#L55)
+
+Return the history of the cost function.
+
+Returns an array containing the history of the cost function during training.
+
+#### [`get_parameter_history() -> np.ndarray`](/learnML/interfaces/iregression.py#L66)
+
+Return the history of the model parameters.
+
+Returns an array containing the history of the model's parameters during training.
+
+#### [`get_weights() -> np.ndarray`](/learnML/interfaces/iregression.py#L77)
+
+Return the learned weights of the regression model.
+
+Returns an array containing the learned weights.
+
+#### [`get_intercept() -> np.float64`](/learnML/interfaces/iregression.py#L88)
+
+Return the learned intercept of the regression model.
+
+Returns the learned intercept value.
+
+### Private Methods
+
+#### [`_debug_print(iteration: int, cost: np.float64) -> None`](/learnML/interfaces/iregression.py#L99)
+
+Print the current iteration and cost during training.
+
+- `iteration` (int): The current iteration number.
+- `cost` (np.float64): The current cost value.
 
 ## Notes
 
-- The `IRegression` class builds upon the `IModel` interface and provides additional functionality tailored to regression models.
-- Any regression model class that inherits from `IRegression` must implement the `fit`, `predict`, and `score` methods, as well as any other specific methods required.
+- The `IRegression` interface builds upon the `IModel` interface and provides additional methods and attributes specific to regression models.
+- Model classes that implement this interface are expected to provide implementations for the `fit`, `predict`, and `score` methods, in addition to the methods inherited from `IModel`.
+- The `get_cost_history`, `get_parameter_history`, `get_weights`, and `get_intercept` methods provide insights into the training process and learned model parameters.
+- This interface promotes consistent structure and functionality across various regression model implementations.

@@ -1,4 +1,4 @@
-# Class `IModel`
+# Class [`IModel`](/learnML/interfaces/imodel.py#L5)
 
 ## Description
 
@@ -26,59 +26,35 @@ class CustomModel(IModel):
 
 ## Methods
 
-### `fit(X: np.ndarray, Y: np.ndarray) -> None`
+### [`fit(X: np.ndarray, Y: np.ndarray) -> None`](/learnML/interfaces/imodel.py#L9)
 
-Fit the model to the data.
+Fit the model to the provided data.
 
-- `X` (np.ndarray): The array-like object containing the input data of shape `(n_samples, n_features)`.
-- `Y` (np.ndarray): The array-like object containing the output data of shape `(n_samples, n_targets)` or `(n_samples,)`.
+- `X` (np.ndarray): The input array-like object containing the data with shape `(n_samples, n_features)`.
+- `Y` (np.ndarray): The output array-like object containing the target data with shape `(n_samples, n_targets)` or `(n_samples,)`.
 
-### `predict(X: np.ndarray) -> np.ndarray`
+This method is responsible for training the model on the given data to learn patterns and relationships.
 
-Predict the output given the input.
+### [`predict(X: np.ndarray) -> np.ndarray`](/learnML/interfaces/imodel.py#L29)
 
-- `X` (np.ndarray): The array-like object containing the input data of shape `(n_samples, n_features)`.
-- Returns: An array-like object containing the output data of shape `(n_samples, n_targets)` or `(n_samples,)`.
+Predict outputs based on the input data.
 
-### `score(X: np.ndarray, Y: np.ndarray) -> float`
+- `X` (np.ndarray): The input array-like object containing the data with shape `(n_samples, n_features)`.
 
-Calculate the score of the model.
+This method utilizes the trained model to predict outputs corresponding to the input data.
 
-- `X` (np.ndarray): The array-like object containing the input data of shape `(n_samples, n_features)`.
-- `Y` (np.ndarray): The array-like object containing the output data of shape `(n_samples, n_targets)` or `(n_samples,)`.
-- Returns: The score of the model as a float.
+### [`score(X: np.ndarray, Y: np.ndarray) -> float`](/learnML/interfaces/imodel.py#L48)
 
-## Examples
+Calculate the score of the model's performance.
 
-```python
-# Define a custom model class that inherits from IModel
-class CustomModel(IModel):
-    def fit(self, X, Y):
-        # Implementation of the fit method
-        pass
+- `X` (np.ndarray): The input array-like object containing the data with shape `(n_samples, n_features)`.
+- `Y` (np.ndarray): The output array-like object containing the target data with shape `(n_samples, n_targets)` or `(n_samples,)`.
 
-    def predict(self, X):
-        # Implementation of the predict method
-        pass
-
-    def score(self, X, Y):
-        # Implementation of the score method
-        pass
-
-# Create an instance of the custom model
-model = CustomModel()
-
-# Fit the model to data
-model.fit(training_X, training_Y)
-
-# Make predictions using the model
-predictions = model.predict(test_X)
-
-# Calculate the model's score
-model_score = model.score(test_X, test_Y)
-```
+This method evaluates the model's performance by comparing its predictions with the actual target data and returns a score reflecting its accuracy.
 
 ## Notes
 
-- The `IModel` class provides a common interface for all model classes in the `learnML` library.
-- Any model class that inherits from `IModel` must implement the `fit`, `predict`, and `score` methods.
+- The `IModel` interface serves as a blueprint for machine learning model classes, ensuring a consistent structure across different models.
+- Model classes that implement this interface are expected to provide implementations for the `fit`, `predict`, and `score` methods.
+- The methods' parameters and return types are designed to facilitate seamless integration and interoperability across different model implementations.
+- This interface encourages modularity and standardization in the development of machine learning models, promoting code reusability and maintainability.
