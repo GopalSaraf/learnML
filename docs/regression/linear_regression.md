@@ -1,120 +1,215 @@
-# Linear Regression
+# Class [`LinearRegression`](/learnML/regression/linear_regression.py#L7)
 
 ## Introduction
 
-Linear regression is a supervised machine learning algorithm that is used to predict the value of a continuous variable. It is one of the simplest machine learning algorithms and is often used as a baseline for other algorithms.
+Linear Regression is a fundamental supervised machine learning algorithm used to model the relationship between one or more independent variables and a continuous target variable. It serves as a cornerstone for predictive modeling and provides insights into how changes in input features affect the target variable. Linear Regression assumes that the target variable can be expressed as a linear combination of the input features, facilitating interpretation and prediction.
 
-Linear regression is used to model the relationship between a dependent variable and one or more independent variables. The dependent variable is the variable that we want to predict, and the independent variables are the variables that we use to predict the dependent variable.
+## Mathematical Approach
 
-The relationship between the dependent variable and the independent variables is assumed to be linear. This means that the dependent variable can be expressed as a linear combination of the independent variables.
+Linear Regression aims to find the best-fitting linear equation that predicts the target variable. The equation takes the form:
 
-The linear regression algorithm finds the best fit line that can be used to predict the value of the dependent variable for a given value of the independent variable.
+```
+y = b + w1 * x1 + w2 * x2 + ... + wn * xn
+```
 
-## Implementation
+Where:
 
-The `LinearRegression` class is used to implement the linear regression algorithm. The class is defined in the [`linear_regression.py`](linear_regression.py) file.
+- `y` is the predicted target variable.
+- `b` is the intercept (bias term).
+- `w1, w2, ..., wn` are the weights assigned to each input feature `x1, x2, ..., xn`.
 
-The `LinearRegression` class has the following public methods:
-
-- [`fit`](linear_regression.py#L15): Fit the linear regression model to the training data.
-- [`predict`](linear_regression.py#L30): Predict the value of the dependent variable for the given independent variable.
-- [`score`](linear_regression.py#L40): Calculate the coefficient of determination of the model.
-
-The `LinearRegression` class has the following private methods:
-
-- [`__init__`](linear_regression.py#L7): Initialize the class instance.
-- [`__add_intercept`](linear_regression.py#L9): Add an intercept term to the independent variables.
-- [`__gradient_descent`](linear_regression.py#L19): Perform gradient descent to find the optimal parameters.
-- [`__cost_function`](linear_regression.py#L25): Calculate the cost function.
-- [`__r2_score`](linear_regression.py#L35): Calculate the coefficient of determination.
+The goal of Linear Regression is to find the optimal values for `b` and the weights that minimize the difference between predicted and actual target values.
 
 ## Usage
 
-The `LinearRegression` class can be used to fit a linear regression model to a dataset. The following example demonstrates how to use the class:
+To use the Linear Regression model, follow these steps:
+
+1. Import the `LinearRegression` class from the appropriate module.
+2. Create an instance of the `LinearRegression` class, specifying hyperparameters.
+3. Fit the model to your training data using the `fit` method.
+4. Make predictions on new data using the `predict` method.
+5. Evaluate the model's performance using the `score` method.
 
 ```python
-from learnml.linear_model import LinearRegression
+from learnML.regression import LinearRegression
 
-# Create a LinearRegression object
-model = LinearRegression()
+# Create an instance of LinearRegression
+model = LinearRegression(learning_rate=0.01, n_iterations=1000)
 
-# Fit the model to the training data
-model.fit(X_train, y_train)
+# Fit the model to training data
+model.fit(X_train, Y_train)
 
-# Predict the value of the dependent variable for the test data
-y_pred = model.predict(X_test)
+# Make predictions on new data
+predictions = model.predict(X_test)
 
-# Calculate the coefficient of determination of the model
-score = model.score(X_test, y_test)
+# Calculate the model's score
+model_score = model.score(X_test, Y_test)
 ```
 
-## Example
+## Implementation
 
-The [`linear_regression.py`](../../examples/linear_regression.py) file contains an example that demonstrates how to use the `LinearRegression` class to fit a linear regression model to a dataset. The example uses the [Boston Housing Dataset](https://www.cs.toronto.edu/~delve/data/boston/bostonDetail.html) to predict the median value of owner-occupied homes in Boston.
+### Constructor
 
-The dataset contains 506 rows and 14 columns. The columns are as follows:
+#### [`__init__(learning_rate: np.float64 = 0.001, n_iterations: int = 1000, lambda_: np.float64 = 0, x_scalar: Union[IFeatureEngineering, List[IFeatureEngineering]] = None, y_scalar: Union[IFeatureEngineering, List[IFeatureEngineering]] = None, debug: bool = True, copy_x: bool = True) -> None`](/learnML/regression/linear_regression.py#L24)
 
-- `CRIM`: Per capita crime rate by town
-- `ZN`: Proportion of residential land zoned for lots over 25,000 sq. ft.
-- `INDUS`: Proportion of non-retail business acres per town
-- `CHAS`: Charles River dummy variable (= 1 if tract bounds river; 0 otherwise)
-- `NOX`: Nitric oxides concentration (parts per 10 million)
-- `RM`: Average number of rooms per dwelling
-- `AGE`: Proportion of owner-occupied units built prior to 1940
-- `DIS`: Weighted distances to five Boston employment centers
-- `RAD`: Index of accessibility to radial highways
-- `TAX`: Full-value property tax rate per $10,000
-- `PTRATIO`: Pupil-teacher ratio by town
+Initialize the Linear Regression model.
 
-The target variable is `MEDV`, which is the median value of owner-occupied homes in $1000s.
+- `learning_rate` (np.float64, optional): The learning rate controls the step size during optimization.
+- `n_iterations` (int, optional): The number of iterations for optimization.
+- `lambda_` (np.float64, optional): The regularization parameter for L2 regularization.
+- `x_scalar` (Union[IFeatureEngineering, List[IFeatureEngineering]], optional): Feature engineering for input data.
+- `y_scalar` (Union[IFeatureEngineering, List[IFeatureEngineering]], optional): Feature engineering for output data.
+- `debug` (bool, optional): Whether to print debug messages.
+- `copy_x` (bool, optional): Whether to copy the input array to avoid modification.
 
-The example uses the `LinearRegression` class to fit a linear regression model to the dataset. The model is then used to predict the median value of owner-occupied homes for the test data. The coefficient of determination of the model is also calculated.
+### Methods
 
-The following is the output of the example:
+#### [`fit(X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = 0) -> None`](/learnML/regression/linear_regression.py#L214)
+
+Train the Linear Regression model.
+
+- `X` (np.ndarray): The input array of shape `(n_samples, n_features)` or `(n_samples,)`.
+- `Y` (np.ndarray): The output array of shape `(n_samples,)` or `(n_samples, 1)`.
+- `W` (np.ndarray, optional): Initial weight array.
+- `b` (np.float64, optional): Initial intercept.
+
+**Mathematical Explanation:**
+
+The training process uses the **Gradient Descent** algorithm to minimize the Mean Squared Error (MSE) cost function. The weights (`W`) and intercept (`b`) are iteratively updated using the following formulas:
 
 ```
-Coefficients: [-0.10801136  0.04642042  0.02055863  2.68673382 -1.77957587  5.85775364
- -0.01190152 -0.96865216  0.17131143 -0.00939666 -0.3928038 ]
-Intercept: 36.45948838509015
-R2 score: 0.7334492147453086
+new_weight = old_weight - learning_rate * dw
+new_intercept = old_intercept - learning_rate * db
 ```
 
-The following plot shows the actual and predicted values of the target variable for the test data:
+Where `dw` is the gradient of the cost function with respect to weights and `db` is the gradient with respect to the intercept.
 
-![Linear Regression](../../assets/images/linear_regression.png)
+To compute `dw` and `db`, the `_gradient` method is utilized.
 
-## References
+#### [`predict(X: np.ndarray) -> np.ndarray`](/learnML/regression/linear_regression.py#L275)
 
-- [Linear Regression](https://en.wikipedia.org/wiki/Linear_regression)
-- [Linear Regression for Machine Learning](https://machinelearningmastery.com/linear-regression-for-machine-learning/)
-- [Linear Regression in Python](https://realpython.com/linear-regression-in-python/)
-- [Linear Regression in Python using scikit-learn](https://stackabuse.com/linear-regression-in-python-using-scikit-learn/)
-- [Linear Regression in Python - A Step-by-Step Guide](https://www.datacamp.com/community/tutorials/linear-regression-R)
-- [Linear Regression in Python - Simple and Multiple Linear Regression](https://www.analyticsvidhya.com/blog/2021/05/linear-regression-in-python-simple-and-multiple-linear-regression/)
-- [Linear Regression in Python - A Comprehensive Guide](https://www.analyticsvidhya.com/blog/2021/05/linear-regression-in-python-a-comprehensive-guide/)
-- [Linear Regression in Python - A Complete Guide](https://www.analyticsvidhya.com/blog/2021/05/linear-regression-in-python-a-complete-guide/)
-- [Linear Regression in Python - A Complete Guide](https://www.analyticsvidhya.com/blog/2021/05/linear-regression-in-python-a-complete-guide/)
+Predict the target variable using the trained model.
 
-## Project details
+- `X` (np.ndarray): The input array of shape `(n_samples, n_features)` or `(n_samples,)`.
 
-### Author
+**Mathematical Explanation:**
 
-Seth M. Morton
+The predicted target variable `y_hat` is calculated using the linear equation:
 
-### License
+```
+y_hat = b + w1 * x1 + w2 * x2 + ... + wn * xn
+```
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+Where:
 
-### Acknowledgments
+- `y_hat` is the predicted target variable.
+- `b` is the intercept.
+- `w1, w2, ..., wn` are the learned weights.
+- `x1, x2, ..., xn` are the input features.
 
-- [Linear Regression in Python](https://realpython.com/linear-regression-in-python/)
-- [Linear Regression in Python using scikit-learn](https://stackabuse.com/linear-regression-in-python-using-scikit-learn/)
-- [Linear Regression in Python - A Step-by-Step Guide](https://www.datacamp.com/community/tutorials/linear-regression-R)
+#### [`score(X: np.ndarray, Y: np.ndarray, w: np.ndarray = None, b: np.float64 = None) -> np.float64`](/learnML/regression/linear_regression.py#L305)
 
-### Related Blog Posts
+Calculate the cost function (Mean Squared Error) given input and target data.
 
-- [Linear Regression in Python](https://sethmorton.com/2021/05/18/linear-regression-in-python/)
+- `X` (np.ndarray): The input array of shape `(n_samples, n_features)` or `(n_samples,)`.
+- `Y` (np.ndarray): The target array of shape `(n_samples,)` or `(n_samples, 1)`.
+- `w` (np.ndarray, optional): Weight array.
+- `b` (np.float64, optional): Intercept.
 
-### Related Videos
+**Mathematical Explanation:**
 
-- [Linear Regression in Python](https://youtu.be/2vJtbAha3To)
+The cost function (Mean Squared Error) measures the average squared difference between predicted and actual target values:
+
+```
+MSE = (1 / (2 * m)) * Σ(y_hat_i - y_i)^2
+```
+
+Where:
+
+- `m` is the number of samples.
+- `y_hat_i` is the predicted value for the `i`-th example.
+- `y_i` is the actual target value for the `i`-th example.
+
+### Private Methods
+
+#### [`_y_hat(X: np.ndarray, W: np.ndarray, b: np.float64) -> np.float64`](/learnML/regression/linear_regression.py#L73)
+
+Calculate the predicted value of the target variable given input features, weights, and intercept.
+
+- `X` (np.ndarray): The input array of shape `(n_features,)`.
+- `W` (np.ndarray): The weight array of shape `(n_features,)`.
+- `b` (np.float64): The intercept.
+
+**Mathematical Explanation:**
+
+The `_y_hat` method computes the predicted target value based on the linear equation:
+
+```
+y_hat = b + w1 * x1 + w2 * x2 + ... + wn * xn
+```
+
+#### [`_cost(X: np.ndarray, Y: np.ndarray, W: np.ndarray, b: np.float64) -> np.float64`](/learnML/regression/linear_regression.py#L93)
+
+Calculate the cost function
+
+(Mean Squared Error) given input `X`, target `Y`, weights `W`, and intercept `b`.
+
+- `X` (np.ndarray): The input array of shape `(n_samples, n_features)`.
+- `Y` (np.ndarray): The target array of shape `(n_samples,)`.
+- `W` (np.ndarray): The weight array of shape `(n_features,)`.
+- `b` (np.float64): The intercept.
+
+**Mathematical Explanation:**
+
+The `_cost` method computes the MSE cost function based on the predicted target values and actual target values. It uses the formula:
+
+```
+MSE = (1 / (2 * m)) * Σ(y_hat_i - y_i)^2
+```
+
+Where:
+
+- `m` is the number of samples.
+- `y_hat_i` is the predicted value for the `i`-th example.
+- `y_i` is the actual target value for the `i`-th example.
+
+#### [`_gradient(X: np.ndarray, Y: np.ndarray, W: np.ndarray, b: np.float64) -> Tuple[np.ndarray, np.float64]`](/learnML/regression/linear_regression.py#L129)
+
+Calculate the gradient of the cost function with respect to weights and intercept.
+
+- `X` (np.ndarray): The input array of shape `(n_samples, n_features)`.
+- `Y` (np.ndarray): The target array of shape `(n_samples,)`.
+- `W` (np.ndarray): The weight array of shape `(n_features,)`.
+- `b` (np.float64): The intercept.
+
+**Mathematical Explanation:**
+
+The `_gradient` method computes the gradients of the cost function with respect to the weights and intercept. The gradients are used for parameter updates during optimization. The gradient of the cost function is calculated using the partial derivatives:
+
+```
+dw = (1 / m) * Σ(y_hat_i - y_i) * x_i
+db = (1 / m) * Σ(y_hat_i - y_i)
+```
+
+Where:
+
+- `m` is the number of samples.
+- `y_hat_i` is the predicted value for the `i`-th example.
+- `y_i` is the actual target value for the `i`-th example.
+- `x_i` is the `i`-th feature of the input data.
+
+#### [`_validate_data(X: np.ndarray, Y: np.ndarray = None) -> Tuple[np.ndarray, np.ndarray]`](/learnML/regression/linear_regression.py#L171)
+
+Validate and preprocess input and output data.
+
+- `X` (np.ndarray): The input array of shape `(n_samples, n_features)`.
+- `Y` (np.ndarray, optional): The target array of shape `(n_samples,)` or `(n_samples, 1)`.
+
+The `_validate_data` method preprocesses input and output data, applying feature engineering if provided, and ensures data consistency and compatibility.
+
+## Notes
+
+- The `LinearRegression` class implements linear regression for predicting a continuous target variable using one or more input features.
+- It inherits from the `IRegression` interface and provides implementations for the `fit`, `predict`, and `score` methods.
+- Feature engineering can be applied to the input and output data using the `x_scalar` and `y_scalar` parameters.
+- Private methods `_y_hat`, `_cost`, `_gradient`, and `_validate_data` are used internally for different aspects of the linear regression algorithm.
