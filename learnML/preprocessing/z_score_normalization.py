@@ -131,7 +131,7 @@ class ZScoreNormalization(IFeatureEngineering):
             The inverse data
         """
         if self._indexes is None:
-            return data * self._get_std() + self._get_mean()
+            return np.multiply(data, self._get_std()) + self._get_mean()
         else:
             inverse_data = np.zeros(data.shape)
             inverse_data[:, self._indexes] = (

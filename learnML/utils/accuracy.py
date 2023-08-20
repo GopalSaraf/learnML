@@ -209,3 +209,79 @@ class Metrics:
         y_pred = y_pred.reshape(-1)
         y_test = y_test.reshape(-1)
         return np.sum((np.log(y_pred + 1) - np.log(y_test + 1)) ** 2) / len(y_test)
+
+
+def confusion_matrix(y_pred: np.ndarray, y_test: np.ndarray) -> np.ndarray:
+    """
+    Returns the confusion matrix of model.
+
+    Parameters
+    ----------
+    y_pred : np.ndarray
+        The model prediction array of shape (n_samples, ) or (1, n_samples)
+    y_test : np.ndarray
+        The testing array of shape (n_samples, ) or (1, n_samples)
+
+    Returns
+    -------
+    np.ndarray
+        The confusion matrix of model
+    """
+    return Metrics.confusion_matrix(y_pred, y_test)
+
+
+def accuracy_score(y_pred: np.ndarray, y_test: np.ndarray) -> np.float64:
+    """
+    Returns the accuracy score of model.
+
+    Parameters
+    ----------
+    y_pred : np.ndarray
+        The model prediction array of shape (n_samples, ) or (1, n_samples)
+    y_test : np.ndarray
+        The testing array of shape (n_samples, ) or (1, n_samples)
+
+    Returns
+    -------
+    np.float64
+        The accuracy of model
+    """
+    return Metrics.accuracy_score(y_pred, y_test)
+
+
+def precision_score(y_pred: np.ndarray, y_test: np.ndarray) -> np.float64:
+    """
+    Returns the precision score of model.
+
+    Parameters
+    ----------
+    y_pred : np.ndarray
+        The model prediction array of shape (n_samples, ) or (1, n_samples)
+    y_test : np.ndarray
+        The testing array of shape (n_samples, ) or (1, n_samples)
+
+    Returns
+    -------
+    np.float64
+        The precision of model
+    """
+    return Metrics.precision_score(y_pred, y_test)
+
+
+def recall_score(y_pred: np.ndarray, y_test: np.ndarray) -> np.float64:
+    """
+    Returns the recall score of model.
+
+    Parameters
+    ----------
+    y_pred : np.ndarray
+        The model prediction array of shape (n_samples, ) or (1, n_samples)
+    y_test : np.ndarray
+        The testing array of shape (n_samples, ) or (1, n_samples)
+
+    Returns
+    -------
+    np.float64
+        The recall of model
+    """
+    return Metrics.recall_score(y_pred, y_test)

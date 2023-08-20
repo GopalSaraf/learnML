@@ -1,12 +1,12 @@
-from typing import Tuple
 import numpy as np
+from typing import Tuple, Union, List
 
-from ..interfaces import IModel, IFeatureEngineering
+from ..interfaces import IRegression, IFeatureEngineering
 
 
-class MultipleLinearRegression(IModel):
+class LinearRegression(IRegression):
     """
-    Multiple Feature Linear Regression Model
+    Linear Regression Model
 
     Advantages
     ----------
@@ -23,47 +23,52 @@ class MultipleLinearRegression(IModel):
 
     def __init__(
         self,
-        learning_rate: np.float64 = 0.0001,
-        num_iterations: int = 10000,
+        learning_rate: np.float64 = 0.001,
+        n_iterations: int = 1000,
         lambda_: np.float64 = 0,
+        x_scalar: Union[IFeatureEngineering, List[IFeatureEngineering]] = None,
+        y_scalar: Union[IFeatureEngineering, List[IFeatureEngineering]] = None,
         debug: bool = True,
-        copy_X: bool = True,
-        X_scalar: IFeatureEngineering = None,
-        Y_scalar: IFeatureEngineering = None,
+        copy_x: bool = True,
     ) -> None:
         """
         Parameters
         ----------
         learning_rate : np.float64, optional
-            The learning rate, by default 0.0001
-        num_iterations : int, optional
-            The number of iterations, by default 10000
+            The learning rate, by default 0.001
+        n_iterations : int, optional
+            The number of iterations, by default 1000
         lambda_ : np.float64, optional
             The regularization parameter, by default 0
+        x_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+            The feature engineering for the input data, by default None
+        y_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+            The feature engineering for the output data, by default None
         debug : bool, optional
             Whether to print debug messages, by default True
-        copy_X : bool, optional
+        copy_x : bool, optional
             Whether to copy the input array, by default True
-        X_scalar : IFeatureEngineering, optional
-            The feature scaling object for the input array, by default None
-        Y_scalar : IFeatureEngineering, optional
-            The feature scaling object for the output array, by default None
         """
-        self._learning_rate = learning_rate
-        self._num_iterations = num_iterations
-        self._lambda_ = lambda_
-        self._debug = debug
-        self._copy_X = copy_X
-        self._X_scalar = X_scalar
-        self._Y_scalar = Y_scalar
+        super().__init__(
+            learning_rate=learning_rate,
+            n_iterations=n_iterations,
+            debug=debug,
+            copy_x=copy_x,
+        )
 
-        self._weights: np.ndarray = None
-        self._intercept: np.float64 = None
+        self._lambda = lambda_
 
-        self._cost_history: np.ndarray = None
-        self._params_history: np.ndarray = None
+        if x_scalar is None:
+            x_scalar = []
+        elif isinstance(x_scalar, IFeatureEngineering):
+            x_scalar = [x_scalar]
+        self._x_scalar = x_scalar
 
-        self._debug_freq = num_iterations // 10
+        if y_scalar is None:
+            y_scalar = []
+        elif isinstance(y_scalar, IFeatureEngineering):
+            y_scalar = [y_scalar]
+        self._y_scalar = y_scalar
 
     def _y_hat(self, X: np.ndarray, W: np.ndarray, b: np.float64) -> np.float64:
         """
@@ -158,13 +163,14 @@ class MultipleLinearRegression(IModel):
 
         return dw / m, db / m
         """
-
         m = X.shape[0]
         dw = np.dot(X.T, self._y_hat(X, W, b) - Y) / m
         db = np.sum(self._y_hat(X, W, b) - Y) / m
         return dw, db
 
-    def _getXandY(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _validate_data(
+        self, X: np.ndarray, Y: np.ndarray = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Return the input and output arrays.
 
@@ -172,7 +178,7 @@ class MultipleLinearRegression(IModel):
         ----------
         X : np.ndarray
             The input array of shape (n_samples, n_features)
-        Y : np.ndarray
+        Y : np.ndarray, optional
             The output array of shape (n_samples,) or (n_samples, 1)
 
         Returns
@@ -180,23 +186,29 @@ class MultipleLinearRegression(IModel):
         Tuple[np.ndarray, np.ndarray]
             The input and output arrays
         """
-        if self._copy_X:
+        if Y is not None:
+            assert (
+                X.shape[0] == Y.shape[0]
+            ), "X and Y must have the same number of samples"
+
+        if self._copy_x:
             X = np.copy(X)
 
-        if len(X.shape) == 1:
+        if X.ndim == 1:
             X = X.reshape(-1, 1)
 
-        if len(Y.shape) == 1:
-            Y = Y.reshape(-1, 1)
+        for scalar in self._x_scalar:
+            X = scalar.transform(X)
 
-        if self._X_scalar is not None:
-            X = self._X_scalar.transform(X)
+        if Y is not None:
+            if Y.ndim == 2:
+                Y = Y.reshape(-1)
 
-        if self._Y_scalar is not None:
-            Y = self._Y_scalar.transform(Y).reshape(-1)
-        else:
-            Y = Y.reshape(-1)
+            for scalar in self._y_scalar:
+                Y = scalar.transform(Y)
 
+        if Y is None:
+            return X
         return X, Y
 
     def fit(
@@ -220,31 +232,45 @@ class MultipleLinearRegression(IModel):
         -------
         None
         """
-        assert X.shape[0] == Y.shape[0], "X and Y must have the same number of samples"
-
-        X, Y = self._getXandY(X, Y)
+        X, Y = self._validate_data(X, Y)
 
         self._weights = np.zeros(X.shape[1]) if W is None else W
         self._intercept = b
 
-        self._cost_history = [self._cost(X, Y, self._weights, self._intercept)]
-        self._params_history = []
+        self._cost_history = np.array(
+            [self._cost(X, Y, self._weights, self._intercept)]
+        )
+        self._params_history = np.array(
+            [[self._weights, self._intercept]], dtype=object
+        )
 
-        for i in range(self._num_iterations):
+        for i in range(self._n_iterations):
             dw, db = self._gradient(X, Y, self._weights, self._intercept)
 
             self._weights = self._weights.astype("float64")
             self._weights -= self._learning_rate * dw
             self._intercept -= self._learning_rate * db
 
-            self._cost_history.append(self._cost(X, Y, self._weights, self._intercept))
-            self._params_history.append((self._weights, self._intercept))
+            cost = self._cost(X, Y, self._weights, self._intercept)
+
+            if cost == np.nan or cost == np.inf:
+                raise ValueError(
+                    "Gradient descent failed. Try normalizing the input array or reducing the learning rate. "
+                    "If the problem persists, try reducing the number of iterations."
+                )
+
+            self._cost_history = np.append(self._cost_history, cost)
+            self._params_history = np.append(
+                self._params_history,
+                np.array([[self._weights, self._intercept]], dtype=object),
+                axis=0,
+            )
 
             if self._debug and i % self._debug_freq == 0:
-                self._printIteration(i)
+                self._debug_print(i, cost)
 
         if self._debug:
-            self._printIteration(self._num_iterations)
+            self._debug_print(self._n_iterations, cost)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -265,60 +291,16 @@ class MultipleLinearRegression(IModel):
             "Call the fit method first."
         )
 
-        X, _ = self._getXandY(X, np.zeros(X.shape[0]))
+        X = self._validate_data(X)
 
         predictions = [
             self._y_hat(X[i], self._weights, self._intercept) for i in range(X.shape[0])
         ]
 
-        if self._Y_scalar is not None:
-            predictions = self._Y_scalar.inverse_transform(predictions)
+        for scalar in self._y_scalar:
+            predictions = scalar.inverse_transform(predictions)
 
         return np.array(predictions)
-
-    def get_cost_history(self) -> np.ndarray:
-        """
-        Return the history of the cost function.
-
-        Returns
-        -------
-        np.ndarray
-            The history of the cost function
-        """
-        return np.array(self._cost_history)
-
-    def get_parameter_history(self) -> Tuple[np.ndarray, np.float64]:
-        """
-        Return the history of the parameters.
-
-        Returns
-        -------
-        Tuple[np.ndarray, np.float64]
-            The history of the parameters
-        """
-        return np.array(self._params_history)
-
-    def get_weights(self) -> np.ndarray:
-        """
-        Return the weights.
-
-        Returns
-        -------
-        np.ndarray
-            The weights
-        """
-        return self._weights
-
-    def get_intercept(self) -> np.float64:
-        """
-        Return the intercept.
-
-        Returns
-        -------
-        np.float64
-            The intercept
-        """
-        return self._intercept
 
     def score(
         self, X: np.ndarray, Y: np.ndarray, w: np.ndarray = None, b: np.float64 = None
@@ -343,25 +325,9 @@ class MultipleLinearRegression(IModel):
             The computed cost
         """
 
-        X, Y = self._getXandY(X, Y)
+        X, Y = self._validate_data(X, Y)
 
-        if w is None:
-            w = self._weights
-
-        if b is None:
-            b = self._intercept
+        w = self._weights if w is None else w
+        b = self._intercept if b is None else b
 
         return self._cost(X, Y, w, b)
-
-    def _printIteration(self, iteration: int) -> None:
-        """
-        Print the current iteration and cost.
-
-        Parameters
-        ----------
-        iteration : int
-            The current iteration
-        """
-        n = len(str(self._num_iterations)) + 1
-        cost = self._cost_history[-1]
-        print(f"Iteration: {iteration:{n}n} | Cost: {cost:0.6e}")

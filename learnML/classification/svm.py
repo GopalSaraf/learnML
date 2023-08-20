@@ -1,10 +1,10 @@
 import numpy as np
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
-from ..interfaces import IModel, IFeatureEngineering
+from ..interfaces import IRegression, IFeatureEngineering
 
 
-class LinearSVC(IModel):
+class LinearSVC(IRegression):
     """
     Support Vector Classifier
 
@@ -24,11 +24,11 @@ class LinearSVC(IModel):
     def __init__(
         self,
         learning_rate: np.float64 = 0.001,
-        lambda_param: np.float64 = 0.01,
-        num_iterations: int = 1000,
+        lambda_: np.float64 = 0.01,
+        n_iterations: int = 1000,
+        x_scalar: Union[IFeatureEngineering, List[IFeatureEngineering]] = None,
         debug: bool = True,
-        copy_X: bool = True,
-        X_scalar: IFeatureEngineering = None,
+        copy_x: bool = True,
     ):
         """
         Parameters
@@ -37,30 +37,28 @@ class LinearSVC(IModel):
             The learning rate of the model, by default 0.001
         lambda_param : np.float64, optional
             The regularization parameter of the model, by default 0.01
-        num_iterations : int, optional
+        n_iterations : int, optional
             The number of iterations to train the model, by default 1000
+        x_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+            The feature engineering for the input data, by default None
         debug : bool, optional
             Whether to print the training progress, by default True
-        copy_X : bool, optional
+        copy_x : bool, optional
             Whether to copy the training data, by default True
-        X_scalar : IFeatureEngineering, optional
-            The feature engineering method to be applied to the training data, by default None
         """
+        super().__init__(
+            learning_rate=learning_rate,
+            n_iterations=n_iterations,
+            debug=debug,
+            copy_x=copy_x,
+        )
+        self._lambda = lambda_
 
-        self._learning_rate = learning_rate
-        self._lambda_param = lambda_param
-        self._num_iterations = num_iterations
-        self._debug = debug
-        self._copy_X = copy_X
-        self._X_scalar = X_scalar
-
-        self._weights: np.ndarray = None
-        self._intercept: np.float64 = None
-
-        self._cost_history: np.ndarray = None
-        self._params_history: np.ndarray = None
-
-        self._debug_freq = num_iterations // 10
+        if x_scalar is None:
+            x_scalar = []
+        elif isinstance(x_scalar, IFeatureEngineering):
+            x_scalar = [x_scalar]
+        self._x_scalar = x_scalar
 
     def _y_hat(self, X: np.ndarray, W: np.ndarray, b: np.float64) -> np.ndarray:
         """
@@ -115,7 +113,7 @@ class LinearSVC(IModel):
         # Calculate the cost
         # 1/n * sum(max(0, 1 - y * y_hat)) + lambda * ||W||^2
         cost = np.sum(loss) / n_samples
-        cost += self._lambda_param * np.dot(W.T, W)
+        cost += self._lambda * np.dot(W.T, W)
 
         return cost
 
@@ -153,11 +151,11 @@ class LinearSVC(IModel):
             if y[idx] * y_hat[idx] >= 1:
                 # Gradient of the regularization term
                 # 2 * lambda * W
-                dw += 2 * self._lambda_param * W
+                dw += 2 * self._lambda * W
             else:
                 # Gradient of the hinge loss function
                 # -y * x_i
-                dw += 2 * self._lambda_param * W - np.dot(x_i, y[idx])
+                dw += 2 * self._lambda * W - np.dot(x_i, y[idx])
                 db += y[idx]
 
         dw /= n_samples
@@ -165,7 +163,9 @@ class LinearSVC(IModel):
 
         return dw, db
 
-    def _getXandY(self, X: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def _validate_data(
+        self, X: np.ndarray, Y: np.ndarray = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get the X and y data
 
@@ -173,32 +173,35 @@ class LinearSVC(IModel):
         ----------
         X : np.ndarray
             The input data of shape (n_samples, n_features)
-        y : np.ndarray
+        Y : np.ndarray, optional
             The target data of shape (n_samples, 1)
 
         Returns
         -------
         Tuple[np.ndarray, np.ndarray]
-            The X and y data
+            The X and Y data
         """
-        if self._copy_X:
+        if self._copy_x:
             X = np.copy(X)
 
-        if len(X.shape) == 1:
+        if X.ndim == 1:
             X = X.reshape(-1, 1)
 
-        if len(y.shape) == 2:
-            y = y.reshape(-1)
+        for scalar in self._x_scalar:
+            X = scalar.transform(X)
 
-        if self._X_scalar:
-            X = self._X_scalar.transform(X)
+        if Y is not None:
+            if Y.ndim == 2:
+                Y = Y.reshape(-1)
 
-        y = np.where(y <= 0, -1, 1)
+            Y = np.where(Y <= 0, -1, 1)
 
-        return X, y
+        if Y is None:
+            return X
+        return X, Y
 
     def fit(
-        self, X: np.ndarray, y: np.ndarray, W: np.ndarray = None, b: np.float64 = 0.0
+        self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = 0.0
     ) -> None:
         """
         Fit the model to the data
@@ -214,30 +217,47 @@ class LinearSVC(IModel):
         b : np.float64, optional
             The intercept, by default 0.0
         """
-        assert X.shape[0] == y.shape[0], "The number of samples must be equal"
+        assert X.shape[0] == Y.shape[0], "The number of samples must be equal"
 
-        X, y = self._getXandY(X, y)
+        X, Y = self._validate_data(X, Y)
 
         self._weights = np.zeros(X.shape[1]) if W is None else W
         self._intercept = b
 
-        self._cost_history = [self._cost(X, y, self._weights, self._intercept)]
-        self._params_history = []
+        self._cost_history = np.array(
+            [self._cost(X, Y, self._weights, self._intercept)]
+        )
+        self._params_history = np.array(
+            [[self._weights, self._intercept]], dtype=object
+        )
 
-        for i in range(self._num_iterations):
-            dw, db = self._gradient(X, y, self._weights, self._intercept)
+        for i in range(self._n_iterations):
+            dw, db = self._gradient(X, Y, self._weights, self._intercept)
 
             self._weights -= self._learning_rate * dw
             self._intercept -= self._learning_rate * db
 
-            self._cost_history.append(self._cost(X, y, self._weights, self._intercept))
-            self._params_history.append((self._weights, self._intercept))
+            # Save cost and params history
+            cost = self._cost(X, Y, self._weights, self._intercept)
+
+            if cost == np.nan or cost == np.inf:
+                raise ValueError(
+                    "Gradient descent failed. Try normalizing the input array or reducing the learning rate. "
+                    "If the problem persists, try reducing the number of iterations."
+                )
+
+            self._cost_history = np.append(self._cost_history, cost)
+            self._params_history = np.append(
+                self._params_history,
+                np.array([[self._weights, self._intercept]], dtype=object),
+                axis=0,
+            )
 
             if self._debug and i % self._debug_freq == 0:
-                self._printIteration(i)
+                self._debug_print(i, cost)
 
         if self._debug:
-            self._printIteration(self._num_iterations)
+            self._debug_print(self._n_iterations, cost)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -253,56 +273,10 @@ class LinearSVC(IModel):
         np.ndarray
             The predicted target data of shape (n_samples,)
         """
-        X, _ = self._getXandY(X, np.zeros(X.shape[0]))
+        X = self._validate_data(X)
 
         # Return 1 if the prediction is greater than or equal to 0, otherwise return -1
-        return np.where(
-            self._y_hat(X, self._weights, self._intercept) >= 0, 1, 0
-        ).reshape(-1)
-
-    def get_cost_history(self) -> np.ndarray:
-        """
-        Get the cost history
-
-        Returns
-        -------
-        np.ndarray
-            The cost history
-        """
-        return np.array(self._cost_history)
-
-    def get_params_history(self) -> np.ndarray:
-        """
-        Get the parameters history
-
-        Returns
-        -------
-        np.ndarray
-            The parameters history
-        """
-        return np.array(self._params_history)
-
-    def get_weights(self) -> np.ndarray:
-        """
-        Get the weights
-
-        Returns
-        -------
-        np.ndarray
-            The weights
-        """
-        return self._weights
-
-    def get_intercept(self) -> np.float64:
-        """
-        Get the intercept
-
-        Returns
-        -------
-        np.float64
-            The intercept
-        """
-        return self._intercept
+        return np.where(self._y_hat(X, self._weights, self._intercept) >= 0, 1, 0)
 
     def score(
         self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = None
@@ -326,22 +300,9 @@ class LinearSVC(IModel):
         np.float64
             The cost of the model
         """
-        X, Y = self._getXAndY(X, Y)
+        X, Y = self._validate_data(X, Y)
 
         W = self._weights if W is None else W
         b = self._intercept if b is None else b
 
         return self._cost(X, Y, W, b)
-
-    def _printIteration(self, iteration: int) -> None:
-        """
-        Print the current iteration and cost.
-
-        Parameters
-        ----------
-        iteration : int
-            The current iteration
-        """
-        n = len(str(self._num_iterations)) + 1
-        cost = self._cost_history[-1]
-        print(f"Iteration: {iteration:{n}n} | Cost: {cost:0.6e}")

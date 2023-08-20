@@ -1,4 +1,9 @@
 from .univariate_regression import UnivariateLinearRegression
-from .multiple_regression import MultipleLinearRegression
+from .linear_regression import LinearRegression
+from .polynomial_regression import PolynomialRegression
 
-__all__ = ["UnivariateLinearRegression", "MultipleLinearRegression"]
+__all__ = [
+    "UnivariateLinearRegression",
+    "LinearRegression",
+    "PolynomialRegression",
+]

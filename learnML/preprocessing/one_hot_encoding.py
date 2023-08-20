@@ -153,11 +153,84 @@ class OneHotEncoder(IFeatureEngineering):
             else:
                 transformed_data[:, i + col_shift] = data[:, i]
 
+        try:
+            transformed_data = transformed_data.astype(np.float64)
+        except ValueError:
+            pass
+
         return transformed_data
 
     def inverse_transform(self, data: np.ndarray = None) -> np.ndarray:
-        pass
+        """
+        Inverse transform the data
+
+        Parameters
+        ----------
+        data : np.ndarray, optional
+            The input array of shape (n_samples, n_features),
+            by default None (uses the input array passed in the constructor)
+
+        Returns
+        -------
+        np.ndarray
+            The inverse transformed array of shape (n_samples, n_features)
+        """
+
+        if data is None:
+            data = self._data
+
+        m, n = data.shape
+        extra_columns = 0
+
+        for i in range(len(self._categories)):
+            extra_columns += len(self._categories[i]) - 1
+
+        inverse_transformed_data = np.zeros((m, n - extra_columns), dtype=data.dtype)
+        encodings = self._get_encodings()
+
+        col_shift = 0
+        cat_ind = 0
+
+        for i in range(n):
+            if i in self._indexes:
+                for j in range(m):
+                    encoding = ""
+                    for k in range(len(self._categories[cat_ind])):
+                        encoding += str(data[j][i + col_shift])
+                        col_shift += 1
+                    col_shift -= len(self._categories[cat_ind])
+                    inverse_transformed_data[j][i] = np.float64(
+                        list(encodings[cat_ind].keys())[
+                            list(encodings[cat_ind].values()).index(encoding)
+                        ]
+                    )
+                col_shift += len(self._categories[cat_ind]) - 1
+                cat_ind += 1
+            else:
+                inverse_transformed_data[:, i] = data[:, i + col_shift]
+
+        try:
+            inverse_transformed_data = inverse_transformed_data.astype(np.float64)
+        except ValueError:
+            pass
+
+        return inverse_transformed_data
 
     def fit_transform(self, data: np.ndarray = None) -> np.ndarray:
         self.fit(data)
         return self.transform(data)
+
+    def get_categories(self):
+        return self._categories
+
+    def get_encodings(self):
+        encoding_maps = {}
+        encodings = self._get_encodings()
+
+        for i in range(len(self._categories)):
+            for j in range(len(self._categories[i])):
+                encoding_maps[self._categories[i][j]] = np.array(
+                    list(list(encodings[i].values())[j]), dtype=np.float64
+                )
+
+        return encoding_maps
