@@ -29,12 +29,6 @@ The primary goal of this repository is to provide educational resources for unde
 
 Explore the examples in the `examples` folder to see how to use the algorithms. Each example showcases a specific algorithm on a sample dataset.
 
-To run an example, navigate to the root folder and execute the following command:
-
-```bash
-python examples/<example_name>.py
-```
-
 ## Contributing
 
 Contributions to the LearnML repository are welcome! If you would like to contribute, follow these steps:
