@@ -5,17 +5,22 @@ from typing import Tuple, Union
 
 def _get_numpy_data(data: Union[pd.DataFrame, np.ndarray, list]) -> np.ndarray:
     """
-    Convert the data to numpy array.
+    ### Convert the data to numpy array.
 
     Parameters
     ----------
-    data : Union[pd.DataFrame, np.ndarray, list]
-        The data to be converted
+
+    `data` : Union[pd.DataFrame, np.ndarray, list]
+    - The data to be converted
+
 
     Returns
     -------
-    np.ndarray
-        The data as numpy array
+
+    `np.ndarray`
+    - The data as numpy array
+
+    ---
     """
     if isinstance(data, pd.DataFrame):
         data = data.to_numpy()
@@ -24,33 +29,70 @@ def _get_numpy_data(data: Union[pd.DataFrame, np.ndarray, list]) -> np.ndarray:
     elif isinstance(data, list):
         data = np.array(data)
     else:
-        raise TypeError("data must be either pandas DataFrame or numpy array")
+        try:
+            data = np.array(data)
+        except Exception as e:
+            raise Exception(
+                f"Unable to convert the data to numpy array.\n{e.__class__.__name__}: {e}"
+            )
 
     return data
 
 
 def train_test_split(
-    X: np.ndarray, Y: np.ndarray, test_size: float = 0.2, random_state: int = 0
+    X: Union[np.ndarray, pd.DataFrame, list],
+    Y: Union[np.ndarray, pd.DataFrame, list],
+    test_size: float = 0.2,
+    random_state: int = 0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Split the data into training and testing sets.
+    ### Split the data into training and testing sets.
 
     Parameters
     ----------
-    X : np.ndarray
-        The input features of shape (n_samples, n_features)
-    Y : np.ndarray
-        The output features of shape (n_samples, n_outputs)
-    test_size : float, optional
-        The size of the testing set, by default 0.2
-    random_state : int, optional
-        The random state, by default 0
+
+    `X` : np.ndarray
+    - The input features of shape (n_samples, n_features)
+
+    `Y` : np.ndarray
+    - The output features of shape (n_samples, n_outputs)
+
+    `test_size` : float, optional
+    - The size of the testing set, by default 0.2
+    - Must be between 0 and 1
+
+    `random_state` : int, optional
+    - The random state, by default 0
+    - Used to shuffle the data
+
 
     Returns
     -------
-    tuple
-        The training and testing sets
-        X_train, X_test, Y_train, Y_test
+
+    `Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]`
+    - The training and testing sets
+        [X_train, X_test, Y_train, Y_test]
+
+    - X_train : np.ndarray
+        - The input features of the training set
+    - X_test : np.ndarray
+        - The input features of the testing set
+    - Y_train : np.ndarray
+        - The output features of the training set
+    - Y_test : np.ndarray
+        - The output features of the testing set
+
+    ---
+
+    Usage
+    -----
+    ```python
+    from learnML.preprocessing import train_test_split
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
+    ```
+
+    ---
     """
     X = _get_numpy_data(X)
     Y = _get_numpy_data(Y)
@@ -92,18 +134,84 @@ def train_test_split(
 
 
 class KFoldSplit:
-    """Class for splitting the data into training and testing sets using k-fold cross validation."""
+    """
+    # KFoldSplit
 
-    def __init__(self, X: np.ndarray, Y: np.ndarray = None, k: int = 5):
+    Class for splitting the data into training and testing
+    sets using k-fold cross validation.
+
+    ---
+
+    ## Mathematical Approach
+
+    Let `X` be the input features of shape (n_samples, n_features) and
+    `Y` be the output features of shape (n_samples, n_outputs).
+
+    Let `k` be the number of folds.
+
+    Let `m` be the number of samples.
+
+    Then the data is split into `k` folds.
+
+    The `i`th fold is used as the testing set and the remaining folds are used as the training set.
+
+    The data is split into `k` folds using the following steps:
+
+    1. Shuffle the indices of the data points.
+    2. Use the shuffled indices to rearrange X and Y.
+    3. Split the data into `k` folds.
+    4. Repeat steps 1 to 3 `k` times.
+
+    ---
+
+    ## Usage
+
+    To split the data into training and testing sets using k-fold cross validation,
+    follow the steps given below:
+
+    1. Import the `KFoldSplit` class from `learnML.preprocessing` module.
+    2. Create an instance of the `KFoldSplit` class.
+    3. Call the `split` method of the instance created in step 2.
+    4. Call the `get_fold` method of the instance created in step 2 to get the training and testing sets.
+
+    ```python
+    from learnML.preprocessing import KFoldSplit
+
+    # Create an instance of the KFoldSplit class
+    kfold = KFoldSplit(X, Y, k=5)
+
+    # Split the data into training and testing sets
+    kfold.split()
+
+    # Get the training and testing sets
+    X_train, X_test, Y_train, Y_test = kfold.get_fold(0)
+    ```
+
+    ---
+    """
+
+    def __init__(
+        self,
+        X: Union[np.ndarray, pd.DataFrame, list],
+        Y: Union[np.ndarray, pd.DataFrame, list] = None,
+        k: int = 5,
+    ):
         """
-        Initialize the KFoldSplit class.
-
         Parameters
         ----------
-        data : np.ndarray
-            The data to be split
-        k : int, optional
-            The number of folds, by default 5
+
+        `X` : Union[np.ndarray, pd.DataFrame, list]
+        - The input features of shape (n_samples, n_features)
+
+        `Y` : Union[np.ndarray, pd.DataFrame, list], optional
+        - The output features of shape (n_samples, n_outputs), by default None
+        - If None, then the data is split into k folds without the output features
+
+        `k` : int, optional
+        - The number of folds, by default 5
+        - Must be greater than 1
+
+        ---
         """
         assert k > 1, "k must be greater than 1"
 
@@ -120,11 +228,14 @@ class KFoldSplit:
 
     def split(self) -> None:
         """
-        Split the data into training and testing sets using k-fold cross validation.
+        ### Split the data into training and testing sets using k-fold cross validation.
 
         Returns
         -------
+
         None
+
+        ---
         """
         m, n = self._X.shape
 
@@ -146,21 +257,34 @@ class KFoldSplit:
                 Y_i = self._Y[i * self._foldSize : (i + 1) * self._foldSize, :]
             self._splitted_data.append((X_i, Y_i))
 
-    def get_fold(self, nthFold: int = 0) -> tuple:
+    def get_fold(
+        self, nthFold: int = 0
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ]:
         """
-        Get the training and testing sets for the nth fold.
+        ### Get the training and testing sets for the nth fold.
 
         Parameters
         ----------
-        nthFold : int, optional
-            The fold number, by default 0
+
+        `nthFold` : int, optional
+        - The index of the fold, by default 0
+        - Must be between 0 and k - 1
 
         Returns
         -------
-        tuple
-            The training and testing sets
-            X_train, X_test, Y_train, Y_test (if Y is not None)
-            X_train, X_test (if Y is None)
+
+        `Union[
+            Tuple[np.ndarray, np.ndarray],
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        ]`
+        - The training and testing sets
+        - If Y is None, then the output is (X_train, X_test)
+        - Else, the output is (X_train, X_test, Y_train, Y_test)
+
+        ---
         """
         if self._splitted_data is None:
             self.split()
@@ -191,18 +315,56 @@ class KFoldSplit:
 
 
 class OneLeaveOutSplit:
-    """Class for splitting the data into training and testing sets using leave-one-out cross validation."""
+    """
+    # OneLeaveOutSplit
 
-    def __init__(self, X: np.ndarray, Y: np.ndarray = None):
+    Class for splitting the data into training and testing
+    sets using leave-one-out cross validation.
+
+    ---
+
+    ## Usage
+
+    To use the `OneLeaveOutSplit` class, follow the following steps:
+
+    1. Import the `OneLeaveOutSplit` class from `learnML.preprocessing` module.
+    2. Create an instance of the `OneLeaveOutSplit` class.
+    3. Call the `split` method of the instance created in step 2.
+    4. Call the `get_fold` method of the instance created in step 2 to get the training and testing sets.
+
+    ```python
+    from learnML.preprocessing import OneLeaveOutSplit
+
+    # Create an instance of the OneLeaveOutSplit class
+    loo = OneLeaveOutSplit(X, Y)
+
+    # Split the data into training and testing sets
+    loo.split()
+
+    # Get the training and testing sets
+    X_train, X_test, Y_train, Y_test = loo.get_fold(0)
+    ```
+
+    ---
+    """
+
+    def __init__(
+        self,
+        X: Union[np.ndarray, pd.DataFrame, list],
+        Y: Union[np.ndarray, pd.DataFrame, list] = None,
+    ):
         """
-        Initialize the OneLeaveOutSplit class.
-
         Parameters
         ----------
-        X : np.ndarray
-            The input features
-        Y : np.ndarray, optional
-            The output features, by default None
+
+        `X` : Union[np.ndarray, pd.DataFrame, list]
+        - The input features of shape (n_samples, n_features)
+
+        `Y` : Union[np.ndarray, pd.DataFrame, list], optional
+        - The output features of shape (n_samples, n_outputs), by default None
+        - If None, then the data is split without the output features
+
+        ---
         """
         X = _get_numpy_data(X)
         if Y is not None:
@@ -215,11 +377,14 @@ class OneLeaveOutSplit:
 
     def randomize(self) -> None:
         """
-        Randomize the data.
+        ### Randomize the data.
 
         Returns
         -------
+
         None
+
+        ---
         """
         m, n = self._X.shape
 
@@ -234,21 +399,34 @@ class OneLeaveOutSplit:
 
         self._isRandomized = True
 
-    def get_fold(self, nthFold: int = 0) -> tuple:
+    def get_fold(
+        self, nthFold: int = 0
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ]:
         """
-        Get the training and testing sets for the nth fold.
+        ### Get the training and testing sets for the nth fold.
 
         Parameters
         ----------
-        nthFold : int, optional
-            The fold number, by default 0
+
+        `nthFold` : int, optional
+        - The index of the fold, by default 0
+        - Must be between 0 and k - 1
 
         Returns
         -------
-        tuple
-            The training and testing sets
-            X_train, X_test, Y_train, Y_test (if Y is not None)
-            X_train, X_test (if Y is None)
+
+        `Union[
+            Tuple[np.ndarray, np.ndarray],
+            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        ]`
+        - The training and testing sets
+        - If Y is None, then the output is (X_train, X_test)
+        - Else, the output is (X_train, X_test, Y_train, Y_test)
+
+        ---
         """
         if self._isRandomized is False:
             self.randomize()

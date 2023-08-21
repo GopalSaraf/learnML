@@ -9,7 +9,7 @@ setuptools.setup(
     description="LearnML - Machine Learning Algorithms",
     url="https://github.com/GopalSaraf/learnML",
     author="Gopal Saraf",
-    author_email="contact@gopalsaraf.com",
+    author_email="mail@gopalsaraf.com",
     packages=setuptools.find_packages(),
     install_requires=[
         "numpy",

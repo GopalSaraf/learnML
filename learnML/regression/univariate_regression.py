@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from typing import Tuple, Union, List
 
@@ -6,19 +7,72 @@ from ..interfaces import IRegression, IFeatureEngineering
 
 class UnivariateLinearRegression(IRegression):
     """
-    Univariate Linear Regression model.
+    # Univariate Linear Regression model.
 
-    Advatanges
-    ----------
+    Linear regression is a fundamental supervised machine learning algorithm that models the relationship between a dependent variable and a single independent variable. It approximates this relationship using a linear equation. Univariate Linear Regression is particularly useful when there is a clear linear correlation between the input and output variables.
+
+    ---
+
+    ## Mathematical Approach
+
+    Univariate Linear Regression aims to find the best-fitting line that predicts the output variable based on the input feature. The linear equation is represented as:
+
+    ```
+    y = mx + b
+    ```
+
+    Where:
+
+    - `y` is the predicted output (target variable).
+    - `x` is the input feature (independent variable).
+    - `m` is the slope of the line (weight).
+    - `b` is the y-intercept.
+
+    The goal is to determine the optimal values of `m` and `b` that minimize the difference between predicted values and actual target values.
+
+    ---
+
+    ## Usage
+
+    To utilize the Univariate Linear Regression model, follow these steps:
+
+    1. Import the `UnivariateLinearRegression` class from the appropriate module.
+    2. Create an instance of the `UnivariateLinearRegression` class, specifying hyperparameters.
+    3. Fit the model to your training data using the `fit` method.
+    4. Make predictions on new data using the `predict` method.
+    5. Evaluate the model's performance using the `score` method.
+
+    ```python
+    from learnML.regression import UnivariateLinearRegression
+
+    # Create an instance of UnivariateLinearRegression
+    model = UnivariateLinearRegression(learning_rate=0.01, n_iterations=1000)
+
+    # Fit the model to training data
+    model.fit(X_train, Y_train)
+
+    # Make predictions on new data
+    predictions = model.predict(X_test)
+
+    # Calculate the model's score
+    model_score = model.score(X_test, Y_test)
+    ```
+
+    ---
+
+    ## Advantages
+
     - Easy to implement
     - Easy to interpret the output
     - Computationally cheap
 
-    Disadvantages
-    -------------
+    ## Disadvantages
+
     - Poor performance on non-linear data
     - Sensitive to outliers
     - Sensitive to overfitting
+
+    ---
     """
 
     def __init__(
@@ -33,18 +87,36 @@ class UnivariateLinearRegression(IRegression):
         """
         Parameters
         ----------
-        learning_rate : np.float64, optional
-            The learning rate, by default 0.001
-        n_iterations : int, optional
-            The number of iterations, by default 1000
-        x_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
-            The feature engineering for the input data, by default None
-        y_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
-            The feature engineering for the output data, by default None
-        debug : bool, optional
-            Whether to print debug information, by default True
-        copy_x : bool, optional
-            Whether to copy the input data, by default True
+
+        `learning_rate` : np.float64, optional
+        - The learning rate, by default 0.001
+        - The learning rate determines how much the weights are updated at each iteration
+        - A low learning rate will take longer to converge, but a high learning rate may overshoot the optimal solution
+
+        `n_iterations` : int, optional
+        - The number of iterations, by default 1000
+        - The number of iterations determines how many times the weights are updated
+        - A higher number of iterations will take longer to converge, but a lower number of iterations may not be enough to converge
+
+        `x_scalar` : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+        - The feature engineering for the input data, by default None
+        - If a list is provided, the feature engineering will be applied in the order provided
+        - If a single feature engineering is provided, it will be applied to all input data
+
+        `y_scalar` : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+        - The feature engineering for the output data, by default None
+        - If a list is provided, the feature engineering will be applied in the order provided
+        - If a single feature engineering is provided, it will be applied to all output data
+
+        `debug` : bool, optional
+        - Whether to print debug messages, by default True
+        - Debug messages include the cost at each iteration
+
+        `copy_x` : bool, optional
+        - Whether to copy the input array, by default True
+        - If False, the input array will be overwritten
+
+        ---
         """
         super().__init__(
             learning_rate=learning_rate,
@@ -67,21 +139,28 @@ class UnivariateLinearRegression(IRegression):
 
     def _y_hat(self, x: np.float64, w: np.float64, b: np.float64) -> np.float64:
         """
-        Return the predicted value given x, w, and b.
+        ### Return the predicted value given x, w, and b.
 
         Parameters
         ----------
-        x : np.float64
-            The input value
-        w : np.float64
-            The weight
-        b : np.float64
-            The intercept
+
+        `x` : np.float64
+        - The input value
+
+        `w` : np.float64
+        - The weight
+
+        `b` : np.float64
+        - The intercept
+
 
         Returns
         -------
-        np.float64
-            The predicted value
+
+        `np.float64`
+        - The predicted value
+
+        ---
         """
         return w * x + b
 
@@ -89,24 +168,32 @@ class UnivariateLinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, w: np.float64, b: np.float64
     ) -> np.float64:
         """
-        Return the cost function given X, Y, w, and b.
+        ### Return the cost function given X, Y, w, and b.
         (Mean Squared Error)
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples,)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
-        w : np.float64
-            The weight
-        b : np.float64
-            The intercept
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples,)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,)
+
+        `w` : np.float64
+        - The weight
+
+        `b` : np.float64
+        - The intercept
+
 
         Returns
         -------
-        np.float64
-            The computed cost
+
+        `np.float64`
+        - The computed cost
+
+        ---
         """
         # Number of samples
         m = X.shape[0]
@@ -122,19 +209,25 @@ class UnivariateLinearRegression(IRegression):
 
     def _gradient(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.float64, np.float64]:
         """
-        Return the gradient of the cost function given X and Y.
+        ### Return the gradient of the cost function given X and Y.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples,)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples,)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,)
+
 
         Returns
         -------
-        Tuple[np.float64, np.float64]
-            The gradient of the cost function with respect to w and b
+
+        `Tuple[np.float64, np.float64]`
+        - The gradient of the cost function with respect to w and b
+
+        ---
         """
         # Number of samples
         m = X.shape[0]
@@ -157,28 +250,37 @@ class UnivariateLinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray = None
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Return the input and output arrays.
+        ### Return the input and output arrays.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples,)
-        Y : np.ndarray or None, optional
-            The output array of shape (n_samples,)
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples,)
+
+        `Y` : np.ndarray or None, optional
+        - The output array of shape (n_samples,)
+
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray]
-            The input and output arrays
+
+        `Tuple[np.ndarray, np.ndarray]`
+        - The input and output arrays
+
+        ---
         """
+        # Copy the arrays if necessary
+        if self._copy_x:
+            X = copy.deepcopy(X)
+
+        X = self.__get_numpy_array(X)
+        Y = self.__get_numpy_array(Y) if Y is not None else None
+
         # Check the shape of X and Y
         assert X.ndim == 1 or (
             X.ndim == 2 and X.shape[1] == 1
         ), "X must be a 1D or 2D array with shape (n_samples,) or (n_samples, 1)"
-
-        # Copy the arrays if necessary
-        if self._copy_x:
-            X = np.copy(X)
 
         # Reshape the arrays if necessary
         if X.ndim == 2:
@@ -207,22 +309,30 @@ class UnivariateLinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, w: np.float64 = 0.0, b: np.float64 = 0.0
     ) -> None:
         """
-        Train the model given X and Y.
+        ### Train the model given X and Y.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples,)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
-        w : np.float64, optional
-            The initial weight, by default 0.0
-        b : np.float64, optional
-            The initial intercept, by default 0.0
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples,)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,)
+
+        `w` : np.float64, optional
+        - The initial weight, by default 0.0
+
+        `b` : np.float64, optional
+        - The initial intercept, by default 0.0
+
 
         Returns
         -------
+
         None
+
+        ---
         """
         X, Y = self._validate_data(X, Y)
 
@@ -270,17 +380,22 @@ class UnivariateLinearRegression(IRegression):
         self, X: Union[np.ndarray, np.float64]
     ) -> Union[np.ndarray, np.float64]:
         """
-        Return the predicted value of y given x.
+        ### Return the predicted value of y given x.
 
         Parameters
         ----------
-        X : Union[np.ndarray, np.float64]
-            The input value or array of shape (n_samples,)
+
+        `X` : Union[np.ndarray, np.float64]
+        - The input value or array of shape (n_samples,)
+
 
         Returns
         -------
-        Union[np.ndarray, np.float64]
-            The predicted value or array of shape (n_samples,)
+
+        `Union[np.ndarray, np.float64]`
+        - The predicted value or array of shape (n_samples,)
+
+        ---
         """
         # Check if the model is trained
         assert self._weights is not None and self._intercept is not None, (
@@ -311,23 +426,31 @@ class UnivariateLinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, w: np.float64 = None, b: np.float64 = None
     ) -> np.float64:
         """
-        Return the cost function given X, Y, w, and b.
+        ### Return the cost function given X, Y, w, and b.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples,)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
-        w : np.float64, optional
-            The weight, by default None
-        b : np.float64, optional
-            The intercept, by default None
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples,)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,)
+
+        `w` : np.float64, optional
+        - The weight, by default None
+
+        `b` : np.float64, optional
+        - The intercept, by default None
+
 
         Returns
         -------
-        np.float64
-            The computed cost
+
+        `np.float64`
+        - The computed cost
+
+        ---
         """
         X, Y = self._validate_data(X, Y)
 

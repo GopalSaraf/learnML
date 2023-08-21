@@ -1,3 +1,4 @@
+import copy
 from typing import Tuple, Union, List
 import numpy as np
 
@@ -6,10 +7,54 @@ from ..interfaces import IRegression, IFeatureEngineering
 
 class LogisticRegression(IRegression):
     """
-    Logistic Regression Model
+    # Logistic Regression Model
 
-    Advantages
-    ----------
+    Logistic Regression is a fundamental classification algorithm used to model the probability of a binary outcome. It's widely employed in machine learning for binary classification tasks and offers insights into the relationship between input features and class probabilities.
+
+    ---
+
+    ## Mathematical Approach
+
+    Logistic Regression aims to predict the probability of a binary outcome by modeling it as a sigmoid function of a linear combination of input features. The equation takes the form:
+
+    ```
+    P(y=1 | X) = 1 / (1 + e^(-z))
+    ```
+
+    Where `P(y=1 | X)` is the probability of the positive class given input `X`, and `z` is the linear combination of input features, weights, and an intercept.
+
+    ---
+
+    ## Usage
+
+    To use the Logistic Regression model, follow these steps:
+
+    1. Import the `LogisticRegression` class from the appropriate module.
+    2. Create an instance of the `LogisticRegression` class, specifying hyperparameters.
+    3. Fit the model to your training data using the `fit` method.
+    4. Make predictions on new data using the `predict` method.
+    5. Evaluate the model's performance using the `score` method.
+
+    ```python
+    from learnML.classification import LogisticRegression
+
+    # Create an instance of LogisticRegression
+    model = LogisticRegression(learning_rate=0.001, n_iterations=1000)
+
+    # Fit the model to training data
+    model.fit(X_train, Y_train)
+
+    # Make predictions on new data
+    predictions = model.predict(X_test)
+
+    # Calculate the model's score
+    model_score = model.score(X_test, Y_test)
+    ```
+
+    ---
+
+    ## Advantages
+
     - Simple and efficient
     - Can be updated easily with new data using stochastic gradient descent
     - Outputs have a nice probabilistic interpretation
@@ -17,10 +62,12 @@ class LogisticRegression(IRegression):
     - Works well with high dimensional data
     - Works well with sparse data
 
-    Disadvantages
-    -------------
+    ## Disadvantages
+
     - Not suitable for large number of features
     - Not suitable for non-linear problems
+
+    ---
     """
 
     def __init__(
@@ -35,18 +82,36 @@ class LogisticRegression(IRegression):
         """
         Parameters
         ----------
-        learning_rate : np.float64, optional
-            The learning rate, by default 0.001
-        n_iterations : int, optional
-            The number of iterations, by default 1000
-        lambda_ : np.float64, optional
-            The regularization parameter, by default 0
-        x_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
-            The feature engineering for the input data, by default None
-        debug : bool, optional
-            Whether to print debug messages, by default True
-        copy_x : bool, optional
-            Whether to copy the input array, by default True
+
+        `learning_rate` : np.float64, optional
+        - The learning rate, by default 0.001
+        - The learning rate determines how much the weights are updated at each iteration
+        - A low learning rate will take longer to converge, but a high learning rate may overshoot the optimal solution
+
+        `n_iterations` : int, optional
+        - The number of iterations, by default 1000
+        - The number of iterations determines how many times the weights are updated
+        - A higher number of iterations will take longer to converge, but a lower number of iterations may not be enough to converge
+
+        `lambda_` : np.float64, optional
+        - The regularization parameter, by default 0
+        - The regularization parameter helps prevent overfitting by penalizing large weights
+        - A higher regularization parameter will penalize large weights more, but a lower regularization parameter may not be enough to prevent overfitting
+
+        `x_scalar` : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+        - The feature engineering for the input data, by default None
+        - If a list is provided, the feature engineering will be applied in the order provided
+        - If a single feature engineering is provided, it will be applied to all input data
+
+        `debug` : bool, optional
+        - Whether to print debug messages, by default True
+        - Debug messages include the cost at each iteration
+
+        `copy_x` : bool, optional
+        - Whether to copy the input array, by default True
+        - If False, the input array will be overwritten
+
+        ---
         """
         super().__init__(
             learning_rate=learning_rate,
@@ -64,17 +129,21 @@ class LogisticRegression(IRegression):
 
     def _sigmoid(self, z: np.float64) -> np.float64:
         """
-        Sigmoid function
+        ### Sigmoid function
 
         Parameters
         ----------
-        z : np.float64
-            The input
+
+        `z` : np.float64
+        - The input
 
         Returns
         -------
-        np.float64
-            The sigmoid of z
+
+        `np.float64`
+        - The sigmoid of z
+
+        ---
         """
         # 1 / (1 + e^(-z))
         return 1 / (1 + np.exp(-z))
@@ -83,23 +152,30 @@ class LogisticRegression(IRegression):
         self, X: np.ndarray, W: np.ndarray, b: np.float64
     ) -> Union[np.float64, np.ndarray]:
         """
-        Return the predicted value of y given X, W, and b.
+        ### Return the predicted value of y given X, W, and b.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_features,) or (n_samples, n_features)
-        W : np.ndarray
-            The weight array of shape (n_features,)
-        b : np.float64
-            The intercept value
+
+        `X` : np.ndarray
+        - The input array of shape (n_features,) or (n_samples, n_features)
+
+        `W` : np.ndarray
+        - The weight array of shape (n_features,)
+
+        `b` : np.float64
+        - The intercept value
+
 
         Returns
         -------
-        np.float64
-            The predicted value of y
-            If X is a 1D array, return a scalar
-            If X is a 2D array, return an array of shape (n_samples,)
+
+        `np.float64`
+        - The predicted value of y
+        - If X is a 1D array, return a scalar
+        - If X is a 2D array, return an array of shape (n_samples,)
+
+        ---
         """
         z = np.dot(X, W) + b
         return self._sigmoid(z)
@@ -108,24 +184,32 @@ class LogisticRegression(IRegression):
         self, X: np.ndarray, y: np.float64, W: np.ndarray, b: np.float64
     ) -> np.float64:
         """
-        Return the cost of the model given X, y, W, and b.
+        ### Return the cost of the model given X, y, W, and b.
         (Cross-entropy loss)
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features)
-        y : np.float64
-            The output array of shape (n_samples,)
-        W : np.ndarray
-            The weight array of shape (n_features,)
-        b : np.float64
-            The intercept value
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features)
+
+        `y` : np.float64
+        - The output array of shape (n_samples,)
+
+        `W` : np.ndarray
+        - The weight array of shape (n_features,)
+
+        `b` : np.float64
+        - The intercept value
+
 
         Returns
         -------
-        np.float64
-            The cost of the model
+
+        `np.float64`
+        - The cost of the model
+
+        ---
         """
         """
         ALTERNATIVE IMPLEMENTATION
@@ -153,23 +237,31 @@ class LogisticRegression(IRegression):
         self, X: np.ndarray, Y: np.float64, W: np.ndarray, b: np.float64
     ) -> Union[np.ndarray, np.float64]:
         """
-        Return the gradient of the model given X, y, W, and b.
+        ### Return the gradient of the model given X, y, W, and b.
 
         Parameters
         ----------
-        x : np.ndarray
-            The input array of shape (n_samples, n_features)
-        y : np.float64
-            The output array of shape (n_samples,)
-        w : np.ndarray
-            The weight array of shape (n_features,)
-        b : np.float64
-            The intercept value
+
+        `x` : np.ndarray
+        - The input array of shape (n_samples, n_features)
+
+        `y` : np.float64
+        - The output array of shape (n_samples,)
+
+        `w` : np.ndarray
+        - The weight array of shape (n_features,)
+
+        `b` : np.float64
+        - The intercept value
+
 
         Returns
         -------
-        Union[np.ndarray, np.float64]
-            The gradient of the model with respect to w and b
+
+        `Union[np.ndarray, np.float64]`
+        - The gradient of the model with respect to w and b
+
+        ---
         """
         """
         ALTERNATIVE IMPLEMENTATION
@@ -207,24 +299,33 @@ class LogisticRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray = None
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Return the input and output arrays of the model.
+        ### Return the input and output arrays of the model.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features)
-        Y : np.ndarray, optional
-            The output array of shape (n_samples,)
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features)
+
+        `Y` : np.ndarray, optional
+        - The output array of shape (n_samples,)
+
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray]
-            The input and output arrays of the model
-            X has shape (n_samples, n_features)
-            Y has shape (n_samples,)
+
+        `Tuple[np.ndarray, np.ndarray]`
+        - The input and output arrays of the model
+        - X has shape (n_samples, n_features)
+        - Y has shape (n_samples,)
+
+        ---
         """
         if self._copy_x:
-            X = np.copy(X)
+            X = copy.deepcopy(X)
+
+        X = self.__get_numpy_array(X)
+        Y = self.__get_numpy_array(Y) if Y is not None else None
 
         if X.ndim == 1:
             X = X.reshape(-1, 1)
@@ -244,26 +345,41 @@ class LogisticRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = 0.0
     ) -> None:
         """
-        Fit the model to the data.
+        ### Fit the model to the data.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
-        W : np.ndarray, optional
-            The weight array of shape (n_features,), by default None
-        b : np.float64, optional
-            The intercept value, by default 0.0
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features) or (n_samples,)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,) or (n_samples, 1)
+
+        `w` : np.ndarray, optional
+        - The weight array, by default None
+        - If None, then the weight array will be initialized to an array of
+            zeros of shape (n_features,)
+        - If not None, then the weight array will be initialized to the given
+            array
+
+        `b` : np.float64, optional
+        - The intercept, by default 0.0
+        - If None, then the intercept will be initialized to 0.0
+        - If not None, then the intercept will be initialized to the given
+            value
+
 
         Returns
         -------
-        None
-        """
-        assert X.shape[0] == Y.shape[0], "X and Y must have the same number of samples"
 
+        None
+
+        ---
+        """
         X, Y = self._validate_data(X, Y)
+
+        assert X.shape[0] == Y.shape[0], "X and Y must have the same number of samples"
 
         # Initialize weights and intercept
         self._weights = np.zeros(X.shape[1]) if W is None else W
@@ -309,17 +425,22 @@ class LogisticRegression(IRegression):
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
-        Predict the probability of the output given the input.
+        ### Predict the probability of the output given the input.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features) or (n_features,)
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features) or (n_features,)
+
 
         Returns
         -------
-        np.ndarray
-            The predicted output array of shape (n_samples,) or (1,)
+
+        `np.ndarray`
+        - The predicted output array of shape (n_samples,) or (1,)
+
+        ---
         """
         assert self._weights is not None and self._intercept is not None, (
             "The model must be trained before making predictions. "
@@ -332,17 +453,22 @@ class LogisticRegression(IRegression):
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
-        Predict the output given the input.
+        ### Predict the output given the input.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features) or (n_features,)
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features) or (n_features,)
+
 
         Returns
         -------
-        np.ndarray
-            The predicted output array of shape (n_samples,) or (1,)
+
+        `np.ndarray`
+        - The predicted output array of shape (n_samples,) or (1,)
+
+        ---
         """
         # Return 1 if the probability of the output being 1 is greater than or equal to 0.5
         # Return 0 otherwise
@@ -352,23 +478,33 @@ class LogisticRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = None
     ) -> np.float64:
         """
-        Return the cost of the model given X, Y, W, and b.
+        ### Return the cost of the model given X, Y, W, and b.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
-        W : np.ndarray, optional
-            The weight array of shape (n_features,), by default None
-        b : np.float64, optional
-            The intercept, by default None
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,)
+
+        `W` : np.ndarray, optional
+        - The weight array of shape (n_features,), by default None
+        - If None, then the weight array will be cosidered as the trained
+            weight array
+
+        `b` : np.float64, optional
+        - The intercept, by default None
+        - If None, then the intercept will be cosidered as the trained
+            intercept
+
 
         Returns
         -------
-        np.float64
-            The cost of the model
+        `np.float64`
+        - The cost of the model
+
+        ---
         """
         X, Y = self._validate_data(X, Y)
 

@@ -6,8 +6,8 @@ from .one_hot_encoding import OneHotEncoder
 __all__ = [
     "ZScoreNormalization",
     "PolynomialFeatures",
+    "OneHotEncoder",
     "train_test_split",
     "KFoldSplit",
     "OneLeaveOutSplit",
-    "OneHotEncoder",
 ]

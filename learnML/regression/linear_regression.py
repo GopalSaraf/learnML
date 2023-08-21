@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from typing import Tuple, Union, List
 
@@ -6,19 +7,71 @@ from ..interfaces import IRegression, IFeatureEngineering
 
 class LinearRegression(IRegression):
     """
-    Linear Regression Model
+    # Linear Regression Model
 
-    Advantages
-    ----------
+    Linear Regression is a fundamental supervised machine learning algorithm used to model the relationship between one or more independent variables and a continuous target variable. It serves as a cornerstone for predictive modeling and provides insights into how changes in input features affect the target variable. Linear Regression assumes that the target variable can be expressed as a linear combination of the input features, facilitating interpretation and prediction.
+
+    ---
+
+    ## Mathematical Approach
+
+    Linear Regression aims to find the best-fitting linear equation that predicts the target variable. The equation takes the form:
+
+    ```
+    y = b + w1 * x1 + w2 * x2 + ... + wn * xn
+    ```
+
+    Where:
+
+    - `y` is the predicted target variable.
+    - `b` is the intercept (bias term).
+    - `w1, w2, ..., wn` are the weights assigned to each input feature `x1, x2, ..., xn`.
+
+    The goal of Linear Regression is to find the optimal values for `b` and the weights that minimize the difference between predicted and actual target values.
+
+    ---
+
+    ## Usage
+
+    To use the Linear Regression model, follow these steps:
+
+    1. Import the `LinearRegression` class from the appropriate module.
+    2. Create an instance of the `LinearRegression` class, specifying hyperparameters.
+    3. Fit the model to your training data using the `fit` method.
+    4. Make predictions on new data using the `predict` method.
+    5. Evaluate the model's performance using the `score` method.
+
+    ```python
+    from learnML.regression import LinearRegression
+
+    # Create an instance of LinearRegression
+    model = LinearRegression(learning_rate=0.01, n_iterations=1000)
+
+    # Fit the model to training data
+    model.fit(X_train, Y_train)
+
+    # Make predictions on new data
+    predictions = model.predict(X_test)
+
+    # Calculate the model's score
+    model_score = model.score(X_test, Y_test)
+    ```
+
+    ---
+
+    ## Advantages
+
     - Easy to implement
     - Easy to interpret the output
     - Computationally cheap
 
-    Disadvantages
-    -------------
+    ## Disadvantages
+
     - Poor performance on non-linear data
     - Sensitive to outliers
     - Sensitive to overfitting
+
+    ---
     """
 
     def __init__(
@@ -34,20 +87,41 @@ class LinearRegression(IRegression):
         """
         Parameters
         ----------
-        learning_rate : np.float64, optional
-            The learning rate, by default 0.001
-        n_iterations : int, optional
-            The number of iterations, by default 1000
-        lambda_ : np.float64, optional
-            The regularization parameter, by default 0
-        x_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
-            The feature engineering for the input data, by default None
-        y_scalar : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
-            The feature engineering for the output data, by default None
-        debug : bool, optional
-            Whether to print debug messages, by default True
-        copy_x : bool, optional
-            Whether to copy the input array, by default True
+
+        `learning_rate` : np.float64, optional
+        - The learning rate, by default 0.001
+        - The learning rate determines how much the weights are updated at each iteration
+        - A low learning rate will take longer to converge, but a high learning rate may overshoot the optimal solution
+
+        `n_iterations` : int, optional
+        - The number of iterations, by default 1000
+        - The number of iterations determines how many times the weights are updated
+        - A higher number of iterations will take longer to converge, but a lower number of iterations may not be enough to converge
+
+        `lambda_` : np.float64, optional
+        - The regularization parameter, by default 0
+        - The regularization parameter helps prevent overfitting by penalizing large weights
+        - A higher regularization parameter will penalize large weights more, but a lower regularization parameter may not be enough to prevent overfitting
+
+        `x_scalar` : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+        - The feature engineering for the input data, by default None
+        - If a list is provided, the feature engineering will be applied in the order provided
+        - If a single feature engineering is provided, it will be applied to all input data
+
+        `y_scalar` : Union[IFeatureEngineering, List[IFeatureEngineering]], optional
+        - The feature engineering for the output data, by default None
+        - If a list is provided, the feature engineering will be applied in the order provided
+        - If a single feature engineering is provided, it will be applied to all output data
+
+        `debug` : bool, optional
+        - Whether to print debug messages, by default True
+        - Debug messages include the cost at each iteration
+
+        `copy_x` : bool, optional
+        - Whether to copy the input array, by default True
+        - If False, the input array will be overwritten
+
+        ---
         """
         super().__init__(
             learning_rate=learning_rate,
@@ -72,21 +146,28 @@ class LinearRegression(IRegression):
 
     def _y_hat(self, X: np.ndarray, W: np.ndarray, b: np.float64) -> np.float64:
         """
-        Return the predicted value of y given x, w, and b.
+        ### Return the predicted value of y given x, w, and b.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_features,)
-        W : np.ndarray
-            The weight array of shape (n_features,)
-        b : np.float64
-            The intercept
+
+        `X` : np.ndarray
+        - The input array of shape (n_features,)
+
+        `W` : np.ndarray
+        - The weight array of shape (n_features,)
+
+        `b` : np.float64
+        - The intercept
+
 
         Returns
         -------
-        np.float64
-            The predicted value of y
+
+        `np.float64`
+        - The predicted value of y
+
+        ---
         """
         return np.dot(X, W) + b
 
@@ -94,23 +175,31 @@ class LinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, W: np.ndarray, b: np.float64
     ) -> np.float64:
         """
-        Return the cost function given X, Y, w, and b.
+        ### Return the cost function given X, Y, w, and b.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
-        W : np.ndarray
-            The weight array of shape (n_features,)
-        b : np.float64
-            The intercept
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,)
+
+        `W` : np.ndarray
+        - The weight array of shape (n_features,)
+
+        `b` : np.float64
+        - The intercept
+
 
         Returns
         -------
-        np.float64
-            The computed cost
+
+        `np.float64`
+        - The computed cost
+
+        ---
         """
         """
         ALTERNATIVE IMPLEMENTATION
@@ -130,25 +219,32 @@ class LinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, W: np.ndarray, b: np.float64
     ) -> Tuple[np.ndarray, np.float64]:
         """
-        Return the gradient of the cost function given X, Y, w, and b.
+        ### Return the gradient of the cost function given X, Y, w, and b.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features)
-        Y : np.ndarray
-            The output array of shape (n_samples,)
-        W : np.ndarray
-            The weight array of shape (n_features,)
-        b : np.float64
-            The intercept
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,)
+
+        `W` : np.ndarray
+        - The weight array of shape (n_features,)
+
+        `b` : np.float64
+        - The intercept
+
 
         Returns
         -------
-        Tuple[np.ndarray, np.float64]
-            The computed gradient
-        """
 
+        `Tuple[np.ndarray, np.float64]`
+        - The computed gradient
+
+        ---
+        """
         """
         ALTERNATIVE IMPLEMENTATION
         --------------------------
@@ -172,27 +268,36 @@ class LinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray = None
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Return the input and output arrays.
+        ### Return the input and output arrays.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features)
-        Y : np.ndarray, optional
-            The output array of shape (n_samples,) or (n_samples, 1)
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features)
+
+        `Y` : np.ndarray, optional
+        - The output array of shape (n_samples,) or (n_samples, 1)
+
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray]
-            The input and output arrays
+
+        `Tuple[np.ndarray, np.ndarray]`
+        - The input and output arrays
+
+        ---
         """
+        if self._copy_x:
+            X = copy.deepcopy(X)
+
+        X = self.__get_numpy_array(X)
+        Y = self.__get_numpy_array(Y) if Y is not None else None
+
         if Y is not None:
             assert (
                 X.shape[0] == Y.shape[0]
             ), "X and Y must have the same number of samples"
-
-        if self._copy_x:
-            X = np.copy(X)
 
         if X.ndim == 1:
             X = X.reshape(-1, 1)
@@ -215,22 +320,42 @@ class LinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, W: np.ndarray = None, b: np.float64 = 0
     ) -> None:
         """
-        Train the model given X and Y.
+        ### Train the model given X and Y.
+
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features) or (n_samples,)
-        Y : np.ndarray
-            The output array of shape (n_samples,) or (n_samples, 1)
-        w : np.ndarray, optional
-            The weight array, by default None
-        b : np.float64, optional
-            The intercept, by default 0
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features) or (n_samples,)
+        - If the shape is (n_samples,), then the model will be trained as a
+            univariate linear regression model
+        - If the shape is (n_samples, n_features), then the model will be
+            trained as a multivariate linear regression model
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,) or (n_samples, 1)
+
+        `w` : np.ndarray, optional
+        - The weight array, by default None
+        - If None, then the weight array will be initialized to an array of
+            zeros of shape (n_features,)
+        - If not None, then the weight array will be initialized to the given
+            array
+
+        `b` : np.float64, optional
+        - The intercept, by default 0
+        - If None, then the intercept will be initialized to 0
+        - If not None, then the intercept will be initialized to the given
+            value
+
 
         Returns
         -------
+
         None
+
+        ---
         """
         X, Y = self._validate_data(X, Y)
 
@@ -274,17 +399,26 @@ class LinearRegression(IRegression):
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
-        Return the predicted values given X.
+        ### Return the predicted values given X.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features) or (n_samples,)
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features) or (n_samples,)
+
 
         Returns
         -------
-        np.ndarray
-            The predicted values of shape (n_samples,)
+
+        `np.ndarray`
+        - The predicted values of shape (n_samples, 1) or (n_samples,)
+        - If the model was trained as a univariate linear regression model,
+            then the shape will be (n_samples,)
+        - If the model was trained as a multivariate linear regression model,
+            then the shape will be (n_samples, 1)
+
+        ---
         """
         assert self._weights is not None and self._intercept is not None, (
             "The model must be trained before making predictions. "
@@ -306,25 +440,36 @@ class LinearRegression(IRegression):
         self, X: np.ndarray, Y: np.ndarray, w: np.ndarray = None, b: np.float64 = None
     ) -> np.float64:
         """
-        Return the cost for given X and Y.
+        ### Return the cost for given X and Y.
 
         Parameters
         ----------
-        X : np.ndarray
-            The input array of shape (n_samples, n_features) or (n_samples,)
-        Y : np.ndarray
-            The output array of shape (n_samples,) or (n_samples, 1)
-        w : np.ndarray, optional
-            The weight array, by default None
-        b : np.float64, optional
-            The intercept, by default None
+
+        `X` : np.ndarray
+        - The input array of shape (n_samples, n_features) or (n_samples,)
+
+        `Y` : np.ndarray
+        - The output array of shape (n_samples,) or (n_samples, 1)
+
+        `w` : np.ndarray, optional
+        - The weight array, by default None
+        - If None, then the weight array will be cosidered as the trained
+            weight array
+
+        `b` : np.float64, optional
+        - The intercept, by default None
+        - If None, then the intercept will be cosidered as the trained
+            intercept
+
 
         Returns
         -------
-        np.float64
-            The computed cost
-        """
 
+        `np.float64`
+        - The computed cost
+
+        ---
+        """
         X, Y = self._validate_data(X, Y)
 
         w = self._weights if w is None else w
