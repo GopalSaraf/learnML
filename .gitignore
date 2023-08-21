@@ -167,3 +167,5 @@ cython_debug/
 
 # Virtual environments
 learnML-venv/
+
+docs-web/
